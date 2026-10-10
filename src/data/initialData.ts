@@ -5,7 +5,7 @@ export const CURRENT_DATE_STRING = '2026-10-10'; // Simulated application timeli
 export const INITIAL_USER: UserAccount = {
   name: 'Ashwin Gupta',
   email: 'ashwingupta2027@gmail.com',
-  role: 'Admin',
+  role: 'User',
 };
 
 export const ORIGIN_PORTS = [

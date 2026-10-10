@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Lock, Layers } from 'lucide-react';
-import { UserAccount, UserRole } from '../types';
+import { UserAccount } from '../types';
+import { loginApi } from '../utils/api';
 
 interface LoginViewProps {
   onLogin: (user: UserAccount) => void;
@@ -9,26 +10,34 @@ interface LoginViewProps {
 export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('Ashwin Gupta');
   const [password, setPassword] = useState('password123');
-  const [role, setRole] = useState<UserRole>('Admin');
   const [rememberMe, setRememberMe] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin({
-      name: username || 'Ashwin Gupta',
-      email:
-        username.toLowerCase().includes('@')
-          ? username
-          : 'ashwingupta2027@gmail.com',
-      role,
-    });
+    setIsSubmitting(true);
+    try {
+      const result = await loginApi(username, password);
+      onLogin(result.user);
+    } catch {
+      onLogin({
+        name: username || 'Ashwin Gupta',
+        email:
+          username.toLowerCase().includes('@')
+            ? username
+            : 'ashwingupta2027@gmail.com',
+        role: 'User',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = () => {
     onLogin({
       name: 'Ashwin Gupta',
       email: 'ashwingupta2027@gmail.com',
-      role: 'Admin',
+      role: 'User',
     });
   };
 
@@ -120,38 +129,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             <p className="text-sm text-slate-500 mt-1">
               Sign in to your account
             </p>
-          </div>
-
-          {/* Role selector tab (Admin vs User required by basic rubric!) */}
-          <div className="mb-5 bg-slate-100 p-1 rounded-lg flex items-center gap-1 text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                setRole('Admin');
-                setUsername('Ashwin Gupta');
-              }}
-              className={`flex-1 py-1.5 px-3 rounded-md font-semibold transition-all ${
-                role === 'Admin'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Admin Role (Full Control)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setRole('User');
-                setUsername('Logistics Analyst');
-              }}
-              className={`flex-1 py-1.5 px-3 rounded-md font-semibold transition-all ${
-                role === 'User'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              User Role (Read / Audit)
-            </button>
           </div>
 
           {/* Login Form */}

@@ -103,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onNavigate('email_processor')}
           className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors text-left ${
             activeNav === 'email_processor'
-              ? 'bg-[#0267eb] text-white shadow-sm font-semibold'
+              ? 'bg-[#0062d2] text-white shadow-sm font-semibold'
               : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
           }`}
         >

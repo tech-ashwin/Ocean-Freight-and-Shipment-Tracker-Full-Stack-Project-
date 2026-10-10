@@ -17,6 +17,13 @@ import {
   CURRENT_DATE_STRING,
 } from './data/initialData';
 import { applyEmailUpdates } from './utils/parser';
+import {
+  loginApi,
+  createShipmentApi,
+  updateShipmentStatusApi,
+  bulkIngestRatesApi,
+  triggerEmailParserApi,
+} from './utils/api';
 
 // Components
 import { Sidebar } from './components/Sidebar';
@@ -75,6 +82,11 @@ export default function App() {
   const [isAddShipmentModalOpen, setIsAddShipmentModalOpen] = useState(false);
   const [auditShipmentId, setAuditShipmentId] = useState('SH001');
 
+  // Ensure backend JWT session token is primed for user
+  useEffect(() => {
+    loginApi(user.email, 'password123').catch(() => {});
+  }, []);
+
   // Sync to local storage
   useEffect(() => {
     localStorage.setItem('bluspark_rates', JSON.stringify(rates));
@@ -103,15 +115,21 @@ export default function App() {
     setIsAuthenticated(false);
   };
 
-  const handleToggleRole = () => {
-    setUser((prev) => ({
-      ...prev,
-      role: prev.role === 'Admin' ? 'User' : 'Admin',
-    }));
+  const handleOpenAddShipment = () => {
+    setIsAddShipmentModalOpen(true);
+  };
+
+  const handleImportRates = async (newRates: CarrierRate[]) => {
+    // Bulk ingest into backend
+    await bulkIngestRatesApi(newRates);
+    setRates((prev) => [...newRates, ...prev]);
   };
 
   // Shipment Handlers
-  const handleAddShipment = (newShipment: Shipment) => {
+  const handleAddShipment = async (newShipment: Shipment) => {
+    // Create via backend
+    await createShipmentApi(newShipment);
+
     setShipments((prev) => [newShipment, ...prev]);
     // Also record activity
     setActivityUpdates((prev) => [
@@ -128,11 +146,17 @@ export default function App() {
     ]);
   };
 
-  const handleUpdateShipmentStatus = (
+  const handleUpdateShipmentStatus = async (
     id: string,
     newStatus: ShipmentStatus,
     deliveredDate?: string
   ) => {
+    // Call backend endpoint
+    await updateShipmentStatusApi(id, {
+      status: newStatus,
+      delivered_date: deliveredDate,
+    });
+
     setShipments((prev) =>
       prev.map((s) => {
         if (s.id === id) {
@@ -153,7 +177,10 @@ export default function App() {
   };
 
   // Email processing batch execution
-  const handleProcessAllEmails = () => {
+  const handleProcessAllEmails = async () => {
+    // Trigger backend endpoint
+    await triggerEmailParserApi();
+
     let currentRates = [...rates];
     let currentShipments = [...shipments];
     const newActivities: ActivityUpdate[] = [];
@@ -208,7 +235,7 @@ export default function App() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
-        <TopBar user={user} onToggleRole={handleToggleRole} />
+        <TopBar user={user} />
 
         {/* Viewport Router */}
         {activeNav === 'dashboard' && (
@@ -216,14 +243,14 @@ export default function App() {
             user={user}
             shipments={shipments}
             onNavigate={setActiveNav}
-            onOpenAddShipment={() => setIsAddShipmentModalOpen(true)}
+            onOpenAddShipment={handleOpenAddShipment}
           />
         )}
 
         {activeNav === 'rate_search' && (
           <RateSearchView
             rates={rates}
-            onImportRates={(newRates) => setRates((prev) => [...newRates, ...prev])}
+            onImportRates={handleImportRates}
             onResetRates={handleResetRates}
           />
         )}
@@ -231,7 +258,7 @@ export default function App() {
         {activeNav === 'shipment_tracker' && (
           <ShipmentTrackerView
             shipments={shipments}
-            onOpenAddModal={() => setIsAddShipmentModalOpen(true)}
+            onOpenAddModal={handleOpenAddShipment}
             onUpdateStatus={handleUpdateShipmentStatus}
             onCheckInvoice={handleAuditInvoice}
             onResetShipments={handleResetShipments}
