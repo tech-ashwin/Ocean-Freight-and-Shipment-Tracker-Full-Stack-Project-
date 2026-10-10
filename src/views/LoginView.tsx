@@ -41,29 +41,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   // Forgot Password modal
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('ashwingupta2027@gmail.com');
   const [forgotFeedback, setForgotFeedback] = useState<string | null>(null);
   const [isForgotSubmitting, setIsForgotSubmitting] = useState(false);
-
-  // Check backend health on mount
-  useEffect(() => {
-    let active = true;
-    fetch('/api/health')
-      .then((res) => {
-        if (res.ok && active) setBackendStatus('online');
-        else if (active) setBackendStatus('offline');
-      })
-      .catch(() => {
-        if (active) setBackendStatus('offline');
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,25 +183,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          {/* Backend Status indicator */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 text-xs">
-            <div
-              className={`w-2 h-2 rounded-full ${
-                backendStatus === 'online'
-                  ? 'bg-emerald-400 animate-pulse'
-                  : backendStatus === 'checking'
-                  ? 'bg-amber-400'
-                  : 'bg-rose-400'
-              }`}
-            />
-            <span className="text-slate-300 text-[11px] font-medium">
-              {backendStatus === 'online'
-                ? 'Backend API Live'
-                : backendStatus === 'checking'
-                ? 'Connecting API...'
-                : 'Offline Cache'}
-            </span>
-          </div>
+
         </div>
 
         {/* Center/Bottom Titles */}
@@ -280,10 +245,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium border border-slate-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              API Live
-            </div>
           </div>
 
           {/* Auth Header Title & Subtitle */}
