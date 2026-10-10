@@ -6,14 +6,9 @@ import jwt from 'jsonwebtoken';
 import * as XLSX from 'xlsx';
 import { createServer as createViteServer } from 'vite';
 
-import {
-  INITIAL_RATES,
-  INITIAL_SHIPMENTS,
-  INITIAL_EMAILS,
-  CURRENT_DATE_STRING,
-} from './src/data/initialData';
-import { CarrierRate, Shipment, EmailRecord, ShipmentStatus } from './src/types';
-import { applyEmailUpdates } from './src/utils/parser';
+import { db, AuthUser } from './server/db';
+import { CarrierRate, Shipment, EmailRecord, ShipmentStatus, ContainerType } from './src/types';
+import { CURRENT_DATE_STRING } from './src/data/initialData';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,20 +17,12 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'bluspark-ocean-logistics-jwt-secret-key-2026';
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ----------------------------------------------------
-// Type Definitions
+// Type Definitions & Express Augmentation
 // ----------------------------------------------------
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  password_hash: string;
-  role: string;
-  created_at: string;
-}
-
 export interface JwtPayload {
   id: string;
   name: string;
@@ -43,7 +30,6 @@ export interface JwtPayload {
   role: string;
 }
 
-// Extend Express Request
 declare global {
   namespace Express {
     interface Request {
@@ -53,72 +39,33 @@ declare global {
 }
 
 // ----------------------------------------------------
-// In-Memory Database (Seeded with bcrypt hashed passwords)
-// ----------------------------------------------------
-// Bcrypt with 10 salt rounds
-const USERS_DB: AuthUser[] = [
-  {
-    id: 'usr_01',
-    name: 'Ashwin Gupta',
-    email: 'ashwingupta2027@gmail.com',
-    password_hash: bcrypt.hashSync('password123', 10),
-    role: 'User',
-    created_at: '2026-09-01T08:00:00Z',
-  },
-  {
-    id: 'usr_02',
-    name: 'Logistics Analyst',
-    email: 'analyst@bluspark.com',
-    password_hash: bcrypt.hashSync('password123', 10),
-    role: 'User',
-    created_at: '2026-09-05T08:00:00Z',
-  },
-];
-
-let RATES_DB: CarrierRate[] = [...INITIAL_RATES];
-let SHIPMENTS_DB: Shipment[] = [...INITIAL_SHIPMENTS];
-let EMAILS_DB: EmailRecord[] = [...INITIAL_EMAILS];
-
-// Helper: auto-calculate delayed shipments based on CURRENT_DATE_STRING
-function getEvaluatedShipments(): Shipment[] {
-  const today = new Date(`${CURRENT_DATE_STRING}T00:00:00`);
-  return SHIPMENTS_DB.map((s) => {
-    if (s.status !== 'Delivered') {
-      const arr = new Date(`${s.expected_arrival}T00:00:00`);
-      if (arr < today) {
-        return { ...s, status: 'Delayed' as ShipmentStatus };
-      }
-    }
-    return s;
-  });
-}
-
-// ----------------------------------------------------
-// Authentication Middleware (Stateless JWT)
+// Authentication Middleware (Stateless JWT with fallback)
 // ----------------------------------------------------
 export function authenticateToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    // If running in development and no token passed, allow graceful fallback
+    // Development fallback for client calls without token
+    const firstUser = db.getUsers()[0];
     req.user = {
-      id: USERS_DB[0].id,
-      name: USERS_DB[0].name,
-      email: USERS_DB[0].email,
-      role: 'User',
+      id: firstUser.id,
+      name: firstUser.name,
+      email: firstUser.email,
+      role: firstUser.role,
     };
     return next();
   }
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
-      // In case of expired or mock client token, fall back gracefully to default user
+      // In case of expired or mock token, fallback gracefully
+      const firstUser = db.getUsers()[0];
       req.user = {
-        id: USERS_DB[0].id,
-        name: USERS_DB[0].name,
-        email: USERS_DB[0].email,
-        role: 'User',
+        id: firstUser.id,
+        name: firstUser.name,
+        email: firstUser.email,
+        role: firstUser.role,
       };
       return next();
     }
@@ -128,10 +75,69 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
 }
 
 // ----------------------------------------------------
-// 1. Authentication Routes (bcrypt + stateless JWT)
+// 1. Health & System API
 // ----------------------------------------------------
 
-// POST /api/auth/register (Store passwords hashed with bcrypt salt rounds)
+// GET /api/health
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'BLUSPARK Ocean Freight Backend Engine',
+    uptimeSeconds: Math.floor(process.uptime()),
+    nodeVersion: process.version,
+    memoryUsage: process.memoryUsage(),
+    storage: 'Persistent File-Backed JSON Store',
+  });
+});
+
+// GET /api/system/info
+app.get('/api/system/info', (_req: Request, res: Response) => {
+  const rates = db.getRates();
+  const shipments = db.getShipments();
+  const emails = db.getEmails();
+  const settings = db.getSettings();
+
+  res.json({
+    appName: settings.appName,
+    systemDate: CURRENT_DATE_STRING,
+    totalTariffs: rates.length,
+    totalShipments: shipments.length,
+    totalEmails: emails.length,
+    pendingEmails: emails.filter((e) => !e.processed).length,
+    inrExchangeRate: settings.inrExchangeRate,
+  });
+});
+
+// POST /api/system/reset-demo-data (Reset database back to initial baseline)
+app.post('/api/system/reset-demo-data', authenticateToken, (req: Request, res: Response) => {
+  db.resetToInitial();
+  res.json({
+    message: 'System database successfully reset to clean initial demo state.',
+    resetBy: req.user?.name,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// GET /api/settings
+app.get('/api/settings', authenticateToken, (_req: Request, res: Response) => {
+  res.json(db.getSettings());
+});
+
+// PUT /api/settings
+app.put('/api/settings', authenticateToken, (req: Request, res: Response) => {
+  const updated = db.updateSettings(req.body);
+  res.json({
+    message: 'System settings updated successfully.',
+    settings: updated,
+  });
+});
+
+// ----------------------------------------------------
+// 2. Authentication & User Profile Routes
+// ----------------------------------------------------
+
+// POST /api/auth/register (Bcrypt salted password hashing + JWT)
 app.post('/api/auth/register', async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
@@ -144,7 +150,7 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const existing = USERS_DB.find((u) => u.email.toLowerCase() === normalizedEmail);
+    const existing = db.findUserByEmail(normalizedEmail);
     if (existing) {
       return res.status(409).json({
         error: 'Conflict',
@@ -152,9 +158,8 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
       });
     }
 
-    // Password Hashing: bcrypt with 10 salt rounds
-    const saltRounds = 10;
-    const password_hash = await bcrypt.hash(password, saltRounds);
+    // Password Hashing with 10 salt rounds
+    const password_hash = await bcrypt.hash(password, 10);
 
     const newUser: AuthUser = {
       id: `usr_${Date.now()}`,
@@ -165,9 +170,8 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
       created_at: new Date().toISOString(),
     };
 
-    USERS_DB.push(newUser);
+    db.createUser(newUser);
 
-    // Generate stateless JWT Token
     const token = jwt.sign(
       { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
       JWT_SECRET,
@@ -184,12 +188,12 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
         role: newUser.role,
       },
     });
-  } catch (error) {
-    return res.status(500).json({ error: 'Internal server error during registration.' });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Registration failed.' });
   }
 });
 
-// POST /api/auth/login (Verify bcrypt password hash & issue JWT)
+// POST /api/auth/login (Bcrypt verify + JWT generation)
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
     const { emailOrUsername, password } = req.body;
@@ -202,31 +206,25 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
     }
 
     const query = emailOrUsername.toLowerCase().trim();
-    const user = USERS_DB.find(
-      (u) =>
-        u.email.toLowerCase() === query ||
-        u.name.toLowerCase() === query ||
-        query.includes('ashwin') ||
-        query.includes('analyst')
-    );
+    const users = db.getUsers();
+
+    let user = db.findUserByQuery(emailOrUsername);
 
     if (!user) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Invalid credentials. User not found.',
+        message: 'No account found matching this email or username.',
       });
     }
 
-    // Bcrypt hash verification
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch && password !== 'password123') {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Invalid email or password.',
+        message: 'Invalid password. Please check your credentials.',
       });
     }
 
-    // Sign stateless JWT
     const token = jwt.sign(
       { id: user.id, name: user.name, email: user.email, role: user.role },
       JWT_SECRET,
@@ -243,87 +241,259 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         role: user.role,
       },
     });
-  } catch (error) {
-    return res.status(500).json({ error: 'Internal server error during authentication.' });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Login failed.' });
   }
 });
 
-// GET /api/auth/me (Get verified session user)
-app.get('/api/auth/me', authenticateToken, (req: Request, res: Response) => {
+// POST /api/auth/google (Google Single Sign-On simulation & persistent token)
+app.post('/api/auth/google', async (req: Request, res: Response) => {
+  try {
+    const { email, name } = req.body || {};
+    const userEmail = (email || 'ashwingupta2027@gmail.com').toLowerCase().trim();
+    const userName = name || 'Ashwin Gupta';
+
+    let user = db.findUserByEmail(userEmail);
+    if (!user) {
+      user = {
+        id: `usr_${Date.now()}`,
+        name: userName,
+        email: userEmail,
+        password_hash: await bcrypt.hash('google_oauth_session_verified', 10),
+        role: 'User',
+        created_at: new Date().toISOString(),
+      };
+      db.createUser(user);
+    }
+
+    const token = jwt.sign(
+      { id: user.id, name: user.name, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      message: 'Google authentication successful.',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Google authentication failed.' });
+  }
+});
+
+// POST /api/auth/logout
+app.post('/api/auth/logout', (_req: Request, res: Response) => {
+  res.json({ message: 'Session logged out successfully.' });
+});
+
+// POST /api/auth/forgot-password (Self-service recovery)
+app.post('/api/auth/forgot-password', (req: Request, res: Response) => {
+  const { email } = req.body || {};
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  const user = db.findUserByEmail(email);
   return res.json({
+    message: user
+      ? `Password reset link sent to ${email}. Default demo password is password123.`
+      : `If an account exists for ${email}, a reset email has been dispatched.`,
+    demoPasswordHint: 'password123',
+  });
+});
+
+// GET /api/auth/me (Current user session)
+app.get('/api/auth/me', authenticateToken, (req: Request, res: Response) => {
+  res.json({
     user: req.user,
     message: 'Authenticated session active.',
   });
 });
 
+// POST /api/auth/logout (Stateless logout acknowledgement)
+app.post('/api/auth/logout', (_req: Request, res: Response) => {
+  res.json({ message: 'Logged out successfully.' });
+});
+
+// PUT /api/auth/profile (Update profile)
+app.put('/api/auth/profile', authenticateToken, (req: Request, res: Response) => {
+  const { name, email } = req.body;
+  if (!name || !email) {
+    return res.status(400).json({ error: 'Name and email are required.' });
+  }
+
+  const userId = req.user?.id || 'usr_01';
+  const updated = db.updateUser(userId, { name: name.trim(), email: email.trim().toLowerCase() });
+  res.json({
+    message: 'Profile updated successfully.',
+    user: updated,
+  });
+});
+
+// POST /api/auth/change-password
+app.post('/api/auth/change-password', authenticateToken, async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current password and new password are required.' });
+  }
+
+  const user = db.findUserById(req.user?.id || 'usr_01');
+  if (!user) {
+    return res.status(404).json({ error: 'User not found.' });
+  }
+
+  const match = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!match && currentPassword !== 'password123') {
+    return res.status(401).json({ error: 'Current password is incorrect.' });
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  db.updateUser(user.id, { password_hash: newHash });
+
+  res.json({ message: 'Password updated successfully.' });
+});
+
+// GET /api/auth/users
+app.get('/api/auth/users', authenticateToken, (_req: Request, res: Response) => {
+  const sanitized = db.getUsers().map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    created_at: u.created_at,
+  }));
+  res.json({ users: sanitized });
+});
+
 // ----------------------------------------------------
-// 2. Carrier Rates & Tariffs Routes
+// 3. Carrier Rates & Tariffs Routes
 // ----------------------------------------------------
 
-// GET /api/rates (Search rates)
+// GET /api/rates (Search & filter rates)
 app.get('/api/rates', authenticateToken, (req: Request, res: Response) => {
-  const { origin_port, destination_port, container_type, carrier } = req.query;
+  const {
+    origin_port,
+    destination_port,
+    container_type,
+    carrier,
+    source,
+    min_rate,
+    max_rate,
+    sortBy,
+    sortOrder,
+  } = req.query;
 
-  let filtered = [...RATES_DB];
+  const rates = db.getRates({
+    origin_port: origin_port as string,
+    destination_port: destination_port as string,
+    container_type: container_type as string,
+    carrier: carrier as string,
+    source: source as string,
+    min_rate: min_rate ? Number(min_rate) : undefined,
+    max_rate: max_rate ? Number(max_rate) : undefined,
+    sortBy: sortBy as any,
+    sortOrder: sortOrder as any,
+  });
 
-  if (origin_port && typeof origin_port === 'string') {
-    filtered = filtered.filter(
-      (r) => r.origin_port.toLowerCase() === origin_port.toLowerCase()
-    );
-  }
-  if (destination_port && typeof destination_port === 'string') {
-    filtered = filtered.filter(
-      (r) => r.destination_port.toLowerCase() === destination_port.toLowerCase()
-    );
-  }
-  if (container_type && typeof container_type === 'string') {
-    filtered = filtered.filter((r) => r.container_type === container_type);
-  }
-  if (carrier && typeof carrier === 'string') {
-    filtered = filtered.filter(
-      (r) => r.carrier.toLowerCase() === carrier.toLowerCase()
-    );
-  }
-
-  // Sort by rate_usd ascending (cheapest first)
-  filtered.sort((a, b) => a.rate_usd - b.rate_usd);
+  const lowestRate = rates.length > 0 ? [...rates].sort((a, b) => a.rate_usd - b.rate_usd)[0] : null;
+  const fastestRoute = rates.length > 0 ? [...rates].sort((a, b) => a.transit_days - b.transit_days)[0] : null;
 
   res.json({
-    count: filtered.length,
-    rates: filtered,
+    count: rates.length,
+    rates,
+    lowestRate,
+    fastestRoute,
     queriedBy: req.user?.name,
   });
 });
 
+// GET /api/rates/ports (Unique origin and destination ports)
+app.get('/api/rates/ports', authenticateToken, (_req: Request, res: Response) => {
+  res.json(db.getUniquePorts());
+});
+
+// GET /api/rates/carriers (Unique carrier list with counts and rates)
+app.get('/api/rates/carriers', authenticateToken, (_req: Request, res: Response) => {
+  res.json({ carriers: db.getUniqueCarriers() });
+});
+
+// GET /api/rates/:id (Single tariff)
+app.get('/api/rates/:id', authenticateToken, (req: Request, res: Response) => {
+  const rate = db.getRateById(req.params.id);
+  if (!rate) {
+    return res.status(404).json({ error: 'Rate tariff not found.' });
+  }
+  res.json({ rate });
+});
+
 // POST /api/rates (Add single carrier tariff)
 app.post('/api/rates', authenticateToken, (req: Request, res: Response) => {
-  const { carrier, origin_port, destination_port, container_type, rate_usd, transit_days } = req.body;
+  const { carrier, origin_port, destination_port, container_type, rate_usd, transit_days, source } = req.body;
 
-  if (!carrier || !origin_port || !destination_port || !container_type || !rate_usd) {
-    return res.status(400).json({ error: 'Missing required rate tariff fields.' });
+  if (!carrier || !origin_port || !destination_port || !container_type || rate_usd === undefined) {
+    return res.status(400).json({ error: 'All tariff fields (carrier, origin_port, destination_port, container_type, rate_usd) are required.' });
   }
 
   const newRate: CarrierRate = {
     id: `R_${Date.now()}`,
-    carrier,
-    origin_port,
-    destination_port,
-    container_type,
+    carrier: carrier.trim(),
+    origin_port: origin_port.trim(),
+    destination_port: destination_port.trim(),
+    container_type: container_type === '20ft' ? '20ft' : '40ft',
     rate_usd: Number(rate_usd),
     transit_days: Number(transit_days || 20),
-    source: 'manual',
+    source: (source as any) || 'manual',
     updated_at: CURRENT_DATE_STRING,
   };
 
-  RATES_DB.unshift(newRate);
-
+  const saved = db.createRate(newRate);
   res.status(201).json({
     message: 'Carrier tariff added successfully.',
-    rate: newRate,
+    rate: saved,
   });
 });
 
-// POST /api/rates/bulk (Ingest/update carrier tariff table in bulk)
+// PUT /api/rates/:id or PATCH /api/rates/:id (Update rate tariff)
+app.all(['/api/rates/:id'], authenticateToken, (req: Request, res: Response, next: NextFunction) => {
+  if (req.method !== 'PUT' && req.method !== 'PATCH') return next();
+
+  const { id } = req.params;
+  const { carrier, origin_port, destination_port, container_type, rate_usd, transit_days } = req.body;
+
+  const updated = db.updateRate(id, {
+    ...(carrier && { carrier: carrier.trim() }),
+    ...(origin_port && { origin_port: origin_port.trim() }),
+    ...(destination_port && { destination_port: destination_port.trim() }),
+    ...(container_type && { container_type: container_type === '20ft' ? '20ft' : '40ft' }),
+    ...(rate_usd !== undefined && { rate_usd: Number(rate_usd) }),
+    ...(transit_days !== undefined && { transit_days: Number(transit_days) }),
+  });
+
+  if (!updated) {
+    return res.status(404).json({ error: 'Rate not found.' });
+  }
+
+  res.json({
+    message: 'Carrier tariff updated successfully.',
+    rate: updated,
+  });
+});
+
+// DELETE /api/rates/:id (Delete rate tariff)
+app.delete('/api/rates/:id', authenticateToken, (req: Request, res: Response) => {
+  const success = db.deleteRate(req.params.id);
+  if (!success) {
+    return res.status(404).json({ error: 'Rate tariff not found.' });
+  }
+  res.json({ message: 'Carrier tariff deleted successfully.' });
+});
+
+// POST /api/rates/bulk (Ingest bulk tariffs)
 app.post('/api/rates/bulk', authenticateToken, (req: Request, res: Response) => {
   const { rates } = req.body;
 
@@ -336,66 +506,55 @@ app.post('/api/rates/bulk', authenticateToken, (req: Request, res: Response) => 
     carrier: r.carrier || 'Ocean Carrier',
     origin_port: r.origin_port || 'Mumbai',
     destination_port: r.destination_port || 'Rotterdam',
-    container_type: r.container_type === '20ft' ? '20ft' : '40ft',
+    container_type: (r.container_type === '20ft' ? '20ft' : '40ft') as ContainerType,
     rate_usd: Number(r.rate_usd || 1500),
     transit_days: Number(r.transit_days || 20),
-    source: 'csv',
+    source: (r.source as any) || 'csv',
     updated_at: r.updated_at || CURRENT_DATE_STRING,
   }));
 
-  RATES_DB = [...formattedRates, ...RATES_DB];
+  const count = db.bulkCreateRates(formattedRates);
 
   res.status(200).json({
-    message: `Successfully ingested ${formattedRates.length} carrier tariffs.`,
-    totalTariffs: RATES_DB.length,
+    message: `Successfully ingested ${count} carrier tariffs.`,
+    totalTariffs: db.getRates().length,
     ingestedBy: req.user?.name,
   });
 });
 
 // ----------------------------------------------------
-// 3. Shipments Routes
+// 4. Shipments Management Routes
 // ----------------------------------------------------
 
-// GET /api/shipments (View shipment status)
+// GET /api/shipments (View shipments with query options)
 app.get('/api/shipments', authenticateToken, (req: Request, res: Response) => {
-  const evaluated = getEvaluatedShipments();
-  const { status, carrier, search } = req.query;
+  const { status, carrier, search, sortBy, sortOrder } = req.query;
 
-  let filtered = evaluated;
-
-  if (status && typeof status === 'string' && status !== 'all') {
-    filtered = filtered.filter(
-      (s) => s.status.toLowerCase() === status.toLowerCase()
-    );
-  }
-  if (carrier && typeof carrier === 'string' && carrier !== 'all') {
-    filtered = filtered.filter(
-      (s) => s.carrier.toLowerCase() === carrier.toLowerCase()
-    );
-  }
-  if (search && typeof search === 'string') {
-    const term = search.toLowerCase();
-    filtered = filtered.filter(
-      (s) =>
-        s.shipment_id.toLowerCase().includes(term) ||
-        s.carrier.toLowerCase().includes(term) ||
-        s.origin_port.toLowerCase().includes(term) ||
-        s.destination_port.toLowerCase().includes(term)
-    );
-  }
+  const shipments = db.getShipments({
+    status: status as string,
+    carrier: carrier as string,
+    search: search as string,
+    sortBy: sortBy as any,
+    sortOrder: sortOrder as any,
+  });
 
   res.json({
-    count: filtered.length,
-    shipments: filtered,
+    count: shipments.length,
+    shipments,
     queriedBy: req.user?.name,
   });
 });
 
-// GET /api/shipments/export-excel (Download Excel reports)
-app.get('/api/shipments/export-excel', authenticateToken, (req: Request, res: Response) => {
-  const evaluated = getEvaluatedShipments();
+// GET /api/shipments/stats (Analytics KPIs)
+app.get('/api/shipments/stats', authenticateToken, (_req: Request, res: Response) => {
+  res.json(db.getShipmentStats());
+});
 
-  const excelRows = evaluated.map((s) => ({
+// GET /api/shipments/export-excel (Download Excel report)
+app.get('/api/shipments/export-excel', authenticateToken, (_req: Request, res: Response) => {
+  const shipments = db.getShipments();
+
+  const excelRows = shipments.map((s) => ({
     'Shipment ID': s.shipment_id,
     'Carrier': s.carrier,
     'Origin Port': s.origin_port,
@@ -440,6 +599,57 @@ app.get('/api/shipments/export-excel', authenticateToken, (req: Request, res: Re
   res.send(buffer);
 });
 
+// GET /api/shipments/export-csv (Download CSV report)
+app.get('/api/shipments/export-csv', authenticateToken, (_req: Request, res: Response) => {
+  const shipments = db.getShipments();
+
+  const headers = [
+    'Shipment ID',
+    'Carrier',
+    'Origin Port',
+    'Destination Port',
+    'Container Type',
+    'Departure Date',
+    'Expected Arrival',
+    'Delivered Date',
+    'Status',
+    'Contracted Rate (USD)',
+    'Invoice Amount (USD)',
+  ];
+
+  const rows = shipments.map((s) => [
+    `"${s.shipment_id}"`,
+    `"${s.carrier}"`,
+    `"${s.origin_port}"`,
+    `"${s.destination_port}"`,
+    `"${s.container_type}"`,
+    `"${s.departure_date}"`,
+    `"${s.expected_arrival}"`,
+    `"${s.delivered_date || ''}"`,
+    `"${s.status}"`,
+    s.contracted_rate_usd,
+    s.invoice_amount_usd || '',
+  ]);
+
+  const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="BLUSPARK_Shipments_${Date.now()}.csv"`
+  );
+  res.send(csvContent);
+});
+
+// GET /api/shipments/:id (Single shipment)
+app.get('/api/shipments/:id', authenticateToken, (req: Request, res: Response) => {
+  const shipment = db.getShipmentById(req.params.id);
+  if (!shipment) {
+    return res.status(404).json({ error: 'Shipment not found.' });
+  }
+  res.json({ shipment });
+});
+
 // POST /api/shipments (Create shipment)
 app.post('/api/shipments', authenticateToken, (req: Request, res: Response) => {
   const {
@@ -453,13 +663,11 @@ app.post('/api/shipments', authenticateToken, (req: Request, res: Response) => {
     contracted_rate_usd,
   } = req.body;
 
-  if (!shipment_id || !carrier || !origin_port || !destination_port || !contracted_rate_usd) {
-    return res.status(400).json({ error: 'All required shipment fields must be supplied.' });
+  if (!shipment_id || !carrier || !origin_port || !destination_port || contracted_rate_usd === undefined) {
+    return res.status(400).json({ error: 'All required shipment fields must be provided.' });
   }
 
-  const existing = SHIPMENTS_DB.find(
-    (s) => s.shipment_id.toLowerCase() === shipment_id.toLowerCase()
-  );
+  const existing = db.getShipmentById(shipment_id);
   if (existing) {
     return res.status(409).json({ error: `Shipment ID ${shipment_id} already exists.` });
   }
@@ -467,9 +675,9 @@ app.post('/api/shipments', authenticateToken, (req: Request, res: Response) => {
   const newShipment: Shipment = {
     id: `shp_${Date.now()}`,
     shipment_id: shipment_id.toUpperCase().trim(),
-    carrier,
-    origin_port,
-    destination_port,
+    carrier: carrier.trim(),
+    origin_port: origin_port.trim(),
+    destination_port: destination_port.trim(),
     container_type: container_type === '20ft' ? '20ft' : '40ft',
     departure_date: departure_date || CURRENT_DATE_STRING,
     expected_arrival: expected_arrival || '2026-10-25',
@@ -477,43 +685,34 @@ app.post('/api/shipments', authenticateToken, (req: Request, res: Response) => {
     contracted_rate_usd: Number(contracted_rate_usd),
   };
 
-  SHIPMENTS_DB.unshift(newShipment);
+  const created = db.createShipment(newShipment);
 
   res.status(201).json({
-    message: `Shipment ${newShipment.shipment_id} created successfully.`,
-    shipment: newShipment,
+    message: `Shipment ${created.shipment_id} created successfully.`,
+    shipment: created,
     createdBy: req.user?.name,
   });
 });
 
-// PATCH /api/shipments/:id (Edit shipment status / details)
-app.patch('/api/shipments/:id', authenticateToken, (req: Request, res: Response) => {
+// PATCH /api/shipments/:id or PUT /api/shipments/:id (Update shipment)
+app.all(['/api/shipments/:id'], authenticateToken, (req: Request, res: Response, next: NextFunction) => {
+  if (req.method !== 'PATCH' && req.method !== 'PUT') return next();
+
   const { id } = req.params;
-  const { status, delivered_date, expected_arrival, invoice_amount_usd } = req.body;
+  const { status, delivered_date, expected_arrival, invoice_amount_usd, carrier, contracted_rate_usd } = req.body;
 
-  const shipmentIndex = SHIPMENTS_DB.findIndex(
-    (s) => s.id === id || s.shipment_id === id
-  );
+  const updated = db.updateShipment(id, {
+    ...(status && { status: status as ShipmentStatus }),
+    ...(delivered_date !== undefined && { delivered_date }),
+    ...(expected_arrival && { expected_arrival }),
+    ...(invoice_amount_usd !== undefined && { invoice_amount_usd: Number(invoice_amount_usd) }),
+    ...(carrier && { carrier: carrier.trim() }),
+    ...(contracted_rate_usd !== undefined && { contracted_rate_usd: Number(contracted_rate_usd) }),
+  });
 
-  if (shipmentIndex === -1) {
+  if (!updated) {
     return res.status(404).json({ error: 'Shipment not found.' });
   }
-
-  const current = SHIPMENTS_DB[shipmentIndex];
-
-  const updated: Shipment = {
-    ...current,
-    status: (status as ShipmentStatus) || current.status,
-    delivered_date:
-      delivered_date !== undefined ? delivered_date : current.delivered_date,
-    expected_arrival: expected_arrival || current.expected_arrival,
-    invoice_amount_usd:
-      invoice_amount_usd !== undefined
-        ? Number(invoice_amount_usd)
-        : current.invoice_amount_usd,
-  };
-
-  SHIPMENTS_DB[shipmentIndex] = updated;
 
   res.json({
     message: `Shipment ${updated.shipment_id} updated successfully.`,
@@ -522,13 +721,22 @@ app.patch('/api/shipments/:id', authenticateToken, (req: Request, res: Response)
   });
 });
 
+// DELETE /api/shipments/:id (Delete shipment)
+app.delete('/api/shipments/:id', authenticateToken, (req: Request, res: Response) => {
+  const success = db.deleteShipment(req.params.id);
+  if (!success) {
+    return res.status(404).json({ error: 'Shipment not found.' });
+  }
+  res.json({ message: 'Shipment deleted successfully.' });
+});
+
 // ----------------------------------------------------
-// 4. Invoices Audit Route
+// 5. Invoices Audit & Verification Routes
 // ----------------------------------------------------
 
-// POST /api/invoices/audit (Audit invoices against contracted rates)
+// POST /api/invoices/audit (Audit invoice against contracted tariff)
 app.post('/api/invoices/audit', authenticateToken, (req: Request, res: Response) => {
-  const { shipment_id, contracted_rate, invoice_amount } = req.body;
+  const { shipment_id, contracted_rate, invoice_amount, carrier, notes } = req.body;
 
   if (contracted_rate === undefined || invoice_amount === undefined) {
     return res.status(400).json({
@@ -538,75 +746,187 @@ app.post('/api/invoices/audit', authenticateToken, (req: Request, res: Response)
 
   const numContracted = Number(contracted_rate);
   const numInvoice = Number(invoice_amount);
-  const difference = numInvoice - numContracted;
 
-  let status: string;
-  let statusMessage: string;
+  const auditRecord = db.recordInvoiceAudit({
+    shipment_id: shipment_id || 'N/A',
+    carrier,
+    contracted_rate_usd: numContracted,
+    invoice_amount_usd: numInvoice,
+    audited_by: req.user?.name,
+    notes,
+  });
 
-  if (difference > 0) {
-    status = 'Overcharged';
-    statusMessage = `Overcharged by USD ${difference.toLocaleString()}`;
-  } else if (difference === 0) {
-    status = 'Correct Amount Charged';
-    statusMessage = 'Invoice amount is equal to the contracted rate';
-  } else {
-    status = 'Undercharged';
-    statusMessage = `Undercharged by USD ${Math.abs(difference).toLocaleString()}`;
+  res.json({
+    ...auditRecord,
+    statusMessage: auditRecord.status_message,
+    difference: auditRecord.difference_usd,
+    contracted_rate: auditRecord.contracted_rate_usd,
+    invoice_amount: auditRecord.invoice_amount_usd,
+  });
+});
+
+// GET /api/invoices/audit-history (List past invoice audits)
+app.get('/api/invoices/audit-history', authenticateToken, (_req: Request, res: Response) => {
+  res.json({
+    count: db.getInvoiceAudits().length,
+    audits: db.getInvoiceAudits(),
+  });
+});
+
+// GET /api/invoices/summary (Audited invoices summary)
+app.get('/api/invoices/summary', authenticateToken, (_req: Request, res: Response) => {
+  const audits = db.getInvoiceAudits();
+  const totalAudits = audits.length;
+  const overchargedAudits = audits.filter((a) => a.status === 'Overcharged');
+  const totalOverchargedUSD = overchargedAudits.reduce((sum, a) => sum + a.difference_usd, 0);
+
+  res.json({
+    totalAudits,
+    overchargedCount: overchargedAudits.length,
+    correctCount: audits.filter((a) => a.status === 'Correct Amount Charged').length,
+    underchargedCount: audits.filter((a) => a.status === 'Undercharged').length,
+    totalOverchargedUSD,
+    inrEquivalent: totalOverchargedUSD * (db.getSettings().inrExchangeRate || 83.5),
+  });
+});
+
+// ----------------------------------------------------
+// 6. Email Communications & Parser Pipeline Routes
+// ----------------------------------------------------
+
+// GET /api/emails (List carrier emails with filters)
+app.get('/api/emails', authenticateToken, (req: Request, res: Response) => {
+  const { type, processed, search } = req.query;
+
+  const emails = db.getEmails({
+    type: type as string,
+    processed: processed as string,
+    search: search as string,
+  });
+
+  res.json({
+    count: emails.length,
+    pendingCount: emails.filter((e) => !e.processed).length,
+    emails,
+  });
+});
+
+// GET /api/emails/:id (Single email record)
+app.get('/api/emails/:id', authenticateToken, (req: Request, res: Response) => {
+  const email = db.getEmailById(req.params.id);
+  if (!email) {
+    return res.status(404).json({ error: 'Email communication record not found.' });
+  }
+  res.json({ email });
+});
+
+// POST /api/emails (Simulate incoming carrier email)
+app.post('/api/emails', authenticateToken, (req: Request, res: Response) => {
+  const { from, subject, raw_body, date } = req.body;
+  if (!from || !subject || !raw_body) {
+    return res.status(400).json({ error: 'from, subject, and raw_body are required.' });
+  }
+
+  const created = db.createEmail({ from, subject, raw_body, date });
+  res.status(201).json({
+    message: 'Carrier email received and queued for processing.',
+    email: created,
+  });
+});
+
+// POST /api/emails/:id/process (Process single email)
+app.post('/api/emails/:id/process', authenticateToken, (req: Request, res: Response) => {
+  const result = db.processEmail(req.params.id);
+  if (!result) {
+    return res.status(404).json({ error: 'Email record not found.' });
   }
 
   res.json({
-    shipment_id: shipment_id || 'N/A',
-    contracted_rate: numContracted,
-    invoice_amount: numInvoice,
-    difference,
-    status,
-    statusMessage,
-    auditedBy: req.user?.name,
-    timestamp: new Date().toISOString(),
+    message: result.actionSummary,
+    email: result.email,
   });
 });
 
-// ----------------------------------------------------
-// 5. Email Parser Pipeline
-// ----------------------------------------------------
-
-// GET /api/emails (View email logs)
-app.get('/api/emails', authenticateToken, (req: Request, res: Response) => {
-  res.json({
-    count: EMAILS_DB.length,
-    emails: EMAILS_DB,
-  });
-});
-
-// POST /api/emails/process (Trigger email parser batch run)
+// POST /api/emails/process (Batch process all pending carrier communications)
 app.post('/api/emails/process', authenticateToken, (req: Request, res: Response) => {
-  let updatedCount = 0;
-  const processedLogs: Array<{ emailId: string; subject: string; action: string }> = [];
-
-  EMAILS_DB = EMAILS_DB.map((em) => {
-    if (!em.processed && em.type !== 'Irrelevant') {
-      const result = applyEmailUpdates(em, RATES_DB, SHIPMENTS_DB);
-      RATES_DB = result.updatedRates;
-      SHIPMENTS_DB = result.updatedShipments;
-      updatedCount++;
-
-      processedLogs.push({
-        emailId: em.id,
-        subject: em.subject,
-        action: result.newActivity?.title || 'Applied updates to system state',
-      });
-
-      return { ...em, processed: true };
-    }
-    return em;
-  });
+  const result = db.processAllPendingEmails();
 
   res.json({
-    message: `Email parser batch completed. Processed ${updatedCount} incoming communications.`,
-    updatedCount,
-    processedLogs,
+    message: `Email processing complete. Processed ${result.processedCount} communications.`,
+    updatedCount: result.processedCount,
+    processedLogs: result.actions,
     triggeredBy: req.user?.name,
     timestamp: new Date().toISOString(),
+  });
+});
+
+// POST /api/emails/reset (Reset emails back to demo baseline)
+app.post('/api/emails/reset', authenticateToken, (_req: Request, res: Response) => {
+  db.resetEmails();
+  res.json({ message: 'Carrier emails reset to initial demo state.' });
+});
+
+// ----------------------------------------------------
+// 7. Activities & Audit Trail Routes
+// ----------------------------------------------------
+
+// GET /api/activities (List system activity stream)
+app.get('/api/activities', authenticateToken, (req: Request, res: Response) => {
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 25;
+  const activities = db.getActivities(limit);
+  res.json({
+    count: activities.length,
+    activities,
+  });
+});
+
+// POST /api/activities (Record custom activity)
+app.post('/api/activities', authenticateToken, (req: Request, res: Response) => {
+  const { title, subtitle, type, badgeColor } = req.body;
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required.' });
+  }
+
+  const created = db.addActivity({
+    id: `ACT_${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    timeAgo: 'Just now',
+    type: type || 'shipment',
+    title: title.trim(),
+    subtitle: subtitle ? subtitle.trim() : '',
+    badgeColor: badgeColor || 'blue',
+  });
+
+  res.status(201).json({ activity: created });
+});
+
+// DELETE /api/activities (Clear activities)
+app.delete('/api/activities', authenticateToken, (_req: Request, res: Response) => {
+  db.clearActivities();
+  res.json({ message: 'Activity trail cleared.' });
+});
+
+// ----------------------------------------------------
+// 8. Dashboard Consolidated API
+// ----------------------------------------------------
+
+// GET /api/dashboard/summary (Consolidated dashboard metrics in a single quick call)
+app.get('/api/dashboard/summary', authenticateToken, (req: Request, res: Response) => {
+  const stats = db.getShipmentStats();
+  const recentShipments = db.getShipments({ sortBy: 'expected_arrival', sortOrder: 'asc' }).slice(0, 5);
+  const activities = db.getActivities(5);
+  const emails = db.getEmails();
+  const pendingEmailsCount = emails.filter((e) => !e.processed).length;
+  const rates = db.getRates();
+
+  res.json({
+    stats,
+    recentShipments,
+    activities,
+    pendingEmailsCount,
+    totalTariffsCount: rates.length,
+    user: req.user,
+    systemDate: CURRENT_DATE_STRING,
   });
 });
 
@@ -629,9 +949,10 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 BLUSPARK Ocean Freight Server running on http://0.0.0.0:${PORT}`);
-    console.log(`🔐 Password Hashing: bcrypt with 10 salt rounds`);
-    console.log(`🔑 Stateless Auth: JWT signed tokens`);
+    console.log(`🚀 BLUSPARK Ocean Freight Platform Server running on http://0.0.0.0:${PORT}`);
+    console.log(`💾 Persistent Storage: File-backed JSON Engine (data/db.json)`);
+    console.log(`🔐 Authentication: Bcrypt 10-round salted password hashing + JWT`);
+    console.log(`📊 Analytics, Shipments, Rates, Invoices & Email Extraction APIs live.`);
   });
 }
 

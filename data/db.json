@@ -1,0 +1,789 @@
+{
+  "users": [
+    {
+      "id": "usr_01",
+      "name": "Ashwin Gupta",
+      "email": "ashwingupta2027@gmail.com",
+      "password_hash": "$2b$10$b3N6tjXjcTL2qKZlGlj9o.4yhuICHFHwIUAn01QXQjHQ7HOToATLG",
+      "role": "User",
+      "created_at": "2026-09-01T08:00:00Z"
+    },
+    {
+      "id": "usr_02",
+      "name": "Logistics Analyst",
+      "email": "analyst@bluspark.com",
+      "password_hash": "$2b$10$yXGVZ1BVHTPK7jMNB.WnK.6nM9RUqARboPm.lSORLyD.ZfirF3uAi",
+      "role": "User",
+      "created_at": "2026-09-05T08:00:00Z"
+    },
+    {
+      "id": "usr_03",
+      "name": "Freight Operator",
+      "email": "operator@bluspark.com",
+      "password_hash": "$2b$10$b3N6tjXjcTL2qKZlGlj9o.4yhuICHFHwIUAn01QXQjHQ7HOToATLG",
+      "role": "User",
+      "created_at": "2026-09-10T08:00:00Z"
+    },
+    {
+      "id": "usr_04",
+      "name": "Logistics Manager",
+      "email": "manager@bluspark.com",
+      "password_hash": "$2b$10$b3N6tjXjcTL2qKZlGlj9o.4yhuICHFHwIUAn01QXQjHQ7HOToATLG",
+      "role": "User",
+      "created_at": "2026-09-12T08:00:00Z"
+    },
+    {
+      "id": "usr_1791655802637",
+      "name": "Captain Sarah",
+      "email": "sarah@bluspark.com",
+      "password_hash": "$2b$10$naIlLEKwIrGM50wkUJau9u3GR1bpahR.p/bkm0Ijwg9TegcZ6qymq",
+      "role": "User",
+      "created_at": "2026-10-10T18:10:02.637Z"
+    }
+  ],
+  "rates": [
+    {
+      "id": "R001",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1420,
+      "transit_days": 22,
+      "source": "csv",
+      "updated_at": "2026-09-20"
+    },
+    {
+      "id": "R002",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1550,
+      "transit_days": 20,
+      "source": "csv",
+      "updated_at": "2026-09-21"
+    },
+    {
+      "id": "R003",
+      "carrier": "GlobalMariner",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1680,
+      "transit_days": 19,
+      "source": "csv",
+      "updated_at": "2026-09-22"
+    },
+    {
+      "id": "R004",
+      "carrier": "PacificStar Line",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1740,
+      "transit_days": 18,
+      "source": "csv",
+      "updated_at": "2026-09-23"
+    },
+    {
+      "id": "R005",
+      "carrier": "AtlasSea Carriers",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1890,
+      "transit_days": 17,
+      "source": "csv",
+      "updated_at": "2026-09-23"
+    },
+    {
+      "id": "R006",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "20ft",
+      "rate_usd": 1050,
+      "transit_days": 22,
+      "source": "csv",
+      "updated_at": "2026-09-20"
+    },
+    {
+      "id": "R007",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "20ft",
+      "rate_usd": 1120,
+      "transit_days": 20,
+      "source": "csv",
+      "updated_at": "2026-09-21"
+    },
+    {
+      "id": "R008",
+      "carrier": "GlobalMariner",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "20ft",
+      "rate_usd": 1180,
+      "transit_days": 19,
+      "source": "csv",
+      "updated_at": "2026-09-22"
+    },
+    {
+      "id": "R009",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Shanghai",
+      "destination_port": "Dubai",
+      "container_type": "40ft",
+      "rate_usd": 1650,
+      "transit_days": 16,
+      "source": "csv",
+      "updated_at": "2026-09-18"
+    },
+    {
+      "id": "R010",
+      "carrier": "GlobalMariner",
+      "origin_port": "Shanghai",
+      "destination_port": "Dubai",
+      "container_type": "40ft",
+      "rate_usd": 1780,
+      "transit_days": 15,
+      "source": "csv",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "R011",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Shanghai",
+      "destination_port": "Dubai",
+      "container_type": "40ft",
+      "rate_usd": 1590,
+      "transit_days": 18,
+      "source": "csv",
+      "updated_at": "2026-09-19"
+    },
+    {
+      "id": "R012",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Shanghai",
+      "destination_port": "Dubai",
+      "container_type": "20ft",
+      "rate_usd": 1250,
+      "transit_days": 16,
+      "source": "csv",
+      "updated_at": "2026-09-18"
+    },
+    {
+      "id": "R013",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Shanghai",
+      "destination_port": "Dubai",
+      "container_type": "20ft",
+      "rate_usd": 1190,
+      "transit_days": 18,
+      "source": "csv",
+      "updated_at": "2026-09-18"
+    },
+    {
+      "id": "R014",
+      "carrier": "GlobalMariner",
+      "origin_port": "Singapore",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "rate_usd": 1680,
+      "transit_days": 20,
+      "source": "csv",
+      "updated_at": "2026-09-15"
+    },
+    {
+      "id": "R015",
+      "carrier": "PacificStar Line",
+      "origin_port": "Singapore",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "rate_usd": 1820,
+      "transit_days": 19,
+      "source": "csv",
+      "updated_at": "2026-09-15"
+    },
+    {
+      "id": "R016",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Singapore",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "rate_usd": 1620,
+      "transit_days": 22,
+      "source": "csv",
+      "updated_at": "2026-09-16"
+    },
+    {
+      "id": "R017",
+      "carrier": "PacificStar Line",
+      "origin_port": "Hamburg",
+      "destination_port": "New York",
+      "container_type": "40ft",
+      "rate_usd": 1740,
+      "transit_days": 14,
+      "source": "csv",
+      "updated_at": "2026-09-17"
+    },
+    {
+      "id": "R018",
+      "carrier": "AtlasSea Carriers",
+      "origin_port": "Hamburg",
+      "destination_port": "New York",
+      "container_type": "40ft",
+      "rate_usd": 1690,
+      "transit_days": 15,
+      "source": "csv",
+      "updated_at": "2026-09-17"
+    },
+    {
+      "id": "R019",
+      "carrier": "AtlasSea Carriers",
+      "origin_port": "Mumbai",
+      "destination_port": "Singapore",
+      "container_type": "20ft",
+      "rate_usd": 980,
+      "transit_days": 12,
+      "source": "csv",
+      "updated_at": "2026-09-10"
+    },
+    {
+      "id": "R020",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Mumbai",
+      "destination_port": "Singapore",
+      "container_type": "20ft",
+      "rate_usd": 1040,
+      "transit_days": 13,
+      "source": "csv",
+      "updated_at": "2026-09-10"
+    },
+    {
+      "id": "R021",
+      "carrier": "PacificStar Line",
+      "origin_port": "Nhava Sheva",
+      "destination_port": "Houston",
+      "container_type": "40ft",
+      "rate_usd": 3200,
+      "transit_days": 28,
+      "source": "email",
+      "updated_at": "2026-09-24"
+    },
+    {
+      "id": "R022",
+      "carrier": "PacificStar Line",
+      "origin_port": "Nhava Sheva",
+      "destination_port": "Houston",
+      "container_type": "20ft",
+      "rate_usd": 2450,
+      "transit_days": 28,
+      "source": "email",
+      "updated_at": "2026-09-24"
+    },
+    {
+      "id": "R023",
+      "carrier": "AtlasSea Carriers",
+      "origin_port": "Kolkata",
+      "destination_port": "Norfolk",
+      "container_type": "40ft",
+      "rate_usd": 3850,
+      "transit_days": 25,
+      "source": "email",
+      "updated_at": "2026-09-26"
+    },
+    {
+      "id": "R024",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Mundra",
+      "destination_port": "Savannah",
+      "container_type": "40ft",
+      "rate_usd": 2890,
+      "transit_days": 26,
+      "source": "csv",
+      "updated_at": "2026-09-20"
+    },
+    {
+      "id": "R025",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Mundra",
+      "destination_port": "Savannah",
+      "container_type": "40ft",
+      "rate_usd": 3050,
+      "transit_days": 24,
+      "source": "csv",
+      "updated_at": "2026-09-20"
+    },
+    {
+      "id": "R026",
+      "carrier": "GlobalMariner",
+      "origin_port": "Chennai",
+      "destination_port": "Long Beach",
+      "container_type": "40ft",
+      "rate_usd": 2650,
+      "transit_days": 23,
+      "source": "csv",
+      "updated_at": "2026-09-22"
+    },
+    {
+      "id": "R027",
+      "carrier": "PacificStar Line",
+      "origin_port": "Chennai",
+      "destination_port": "Long Beach",
+      "container_type": "40ft",
+      "rate_usd": 2580,
+      "transit_days": 25,
+      "source": "csv",
+      "updated_at": "2026-09-22"
+    }
+  ],
+  "shipments": [
+    {
+      "id": "s1",
+      "shipment_id": "SH001",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "departure_date": "2026-09-18",
+      "expected_arrival": "2026-10-10",
+      "delivered_date": null,
+      "status": "In Transit",
+      "contracted_rate_usd": 1500,
+      "invoice_amount_usd": 1550
+    },
+    {
+      "id": "s2",
+      "shipment_id": "SH002",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Shanghai",
+      "destination_port": "Dubai",
+      "container_type": "20ft",
+      "departure_date": "2026-09-15",
+      "expected_arrival": "2026-10-05",
+      "delivered_date": "2026-10-03",
+      "status": "Delivered",
+      "contracted_rate_usd": 1250,
+      "invoice_amount_usd": 1250
+    },
+    {
+      "id": "s3",
+      "shipment_id": "SH003",
+      "carrier": "GlobalMariner",
+      "origin_port": "Singapore",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "departure_date": "2026-09-12",
+      "expected_arrival": "2026-10-02",
+      "delivered_date": null,
+      "status": "Delayed",
+      "contracted_rate_usd": 1680,
+      "invoice_amount_usd": 1680
+    },
+    {
+      "id": "s4",
+      "shipment_id": "SH004",
+      "carrier": "PacificStar Line",
+      "origin_port": "Hamburg",
+      "destination_port": "New York",
+      "container_type": "40ft",
+      "departure_date": "2026-09-24",
+      "expected_arrival": "2026-10-12",
+      "delivered_date": null,
+      "status": "In Transit",
+      "contracted_rate_usd": 1740,
+      "invoice_amount_usd": 1850
+    },
+    {
+      "id": "s5",
+      "shipment_id": "SH005",
+      "carrier": "AtlasSea Carriers",
+      "origin_port": "Mumbai",
+      "destination_port": "Singapore",
+      "container_type": "20ft",
+      "departure_date": "2026-09-10",
+      "expected_arrival": "2026-09-28",
+      "delivered_date": "2026-09-27",
+      "status": "Delivered",
+      "contracted_rate_usd": 980,
+      "invoice_amount_usd": 980
+    },
+    {
+      "id": "s6",
+      "shipment_id": "SH006",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Nhava Sheva",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "departure_date": "2026-10-01",
+      "expected_arrival": "2026-10-18",
+      "delivered_date": null,
+      "status": "In Transit",
+      "contracted_rate_usd": 2150,
+      "invoice_amount_usd": 2150
+    },
+    {
+      "id": "s7",
+      "shipment_id": "SHP1001",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Nhava Sheva",
+      "destination_port": "Long Beach",
+      "container_type": "40ft",
+      "departure_date": "2026-07-20",
+      "expected_arrival": "2026-08-10",
+      "delivered_date": "2026-08-11",
+      "status": "Delivered",
+      "contracted_rate_usd": 2300,
+      "invoice_amount_usd": 2300
+    },
+    {
+      "id": "s8",
+      "shipment_id": "SHP1009",
+      "carrier": "PacificStar Line",
+      "origin_port": "Singapore",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "departure_date": "2026-09-20",
+      "expected_arrival": "2026-10-18",
+      "delivered_date": null,
+      "status": "In Transit",
+      "contracted_rate_usd": 1850,
+      "invoice_amount_usd": 1850
+    },
+    {
+      "id": "s9",
+      "shipment_id": "SHP1010",
+      "carrier": "AtlasSea Carriers",
+      "origin_port": "Chennai",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "departure_date": "2026-09-08",
+      "expected_arrival": "2026-09-27",
+      "delivered_date": null,
+      "status": "Delayed",
+      "contracted_rate_usd": 2400,
+      "invoice_amount_usd": 2650
+    }
+  ],
+  "emails": [
+    {
+      "id": "EM001",
+      "from": "info@pacificstarline.com",
+      "subject": "Rate Notice - Nhava Sheva/Houston",
+      "date": "2026-09-24",
+      "type": "Rate Update",
+      "processed": true,
+      "raw_body": "Dear Customer,\n\nPlease find the updated ocean freight rates effective Oct 1, 2026:\n- Origin: Nhava Sheva (INNSA)\n- Destination: Houston (USHOU)\n- 20GP: $2,450 / 40HC: $3,200\n- Validity: 31-Oct-2026\n\nAll rates subject to standard BAF and port handling charges.",
+      "parsed_payload": {
+        "carrier": "PacificStar Line",
+        "origin_port": "Nhava Sheva",
+        "destination_port": "Houston",
+        "rate_20gp": 2450,
+        "rate_40hc": 3200,
+        "rate_usd": 3200,
+        "container_type": "40ft",
+        "validity": "31-Oct-2026"
+      },
+      "applied_action": "Updated PacificStar Line rates for Nhava Sheva -> Houston"
+    },
+    {
+      "id": "EM002",
+      "from": "rates@atlasseacarriers.com",
+      "subject": "Rate Change Alert - Kolkata to Norfolk",
+      "date": "2026-09-26",
+      "type": "Rate Update",
+      "processed": true,
+      "raw_body": "Notification of tariff adjustment:\nOrigin Port: Kolkata (CCU)\nDestination Port: Norfolk (ORF)\nNew Spot Rate: 40HC @ $3,850\nEffective immediately for sailing week 40.",
+      "parsed_payload": {
+        "carrier": "AtlasSea Carriers",
+        "origin_port": "Kolkata",
+        "destination_port": "Norfolk",
+        "container_type": "40ft",
+        "rate_usd": 3850
+      },
+      "applied_action": "Updated AtlasSea Carriers 40ft rate for Kolkata -> Norfolk ($3,850)"
+    },
+    {
+      "id": "EM003",
+      "from": "tracking@oceanlinklines.com",
+      "subject": "Delivery Confirmation - SHP1001",
+      "date": "2026-08-11",
+      "type": "Shipment Update",
+      "processed": true,
+      "raw_body": "Shipment SHP1001 was delivered to final consignee warehouse in Long Beach.\nProof of delivery signed by receiver on 11-Aug-2026 at 14:22 PST.",
+      "parsed_payload": {
+        "shipment_id": "SHP1001",
+        "new_status": "Delivered",
+        "delivered_date": "2026-08-11"
+      },
+      "applied_action": "Marked SHP1001 as Delivered on 11-Aug-2026"
+    },
+    {
+      "id": "EM004",
+      "from": "ops@pacificstarline.com",
+      "subject": "Shipment SHP1009 - In Transit Update",
+      "date": "2026-09-25",
+      "type": "Shipment Update",
+      "processed": true,
+      "raw_body": "Vessel MV Ocean Star has departed Singapore transshipment hub.\nNext port of call: Rotterdam.\nETA remains unchanged: 18-Oct-2026.",
+      "parsed_payload": {
+        "shipment_id": "SHP1009",
+        "new_status": "In Transit"
+      },
+      "applied_action": "Confirmed In Transit status for SHP1009"
+    },
+    {
+      "id": "EM005",
+      "from": "tracking@atlasseacarriers.com",
+      "subject": "Status Update for SHP1010",
+      "date": "2026-09-28",
+      "type": "Shipment Update",
+      "processed": true,
+      "raw_body": "Container discharged at terminal gateway.\nCustoms clearance currently pending inspection hold.",
+      "parsed_payload": {
+        "shipment_id": "SHP1010",
+        "new_status": "Delayed",
+        "notes": "Customs inspection hold"
+      },
+      "applied_action": "Updated SHP1010 status to Delayed (Hold at terminal)"
+    },
+    {
+      "id": "EM006",
+      "from": "hr@oceanlinklines.com",
+      "subject": "Out of Office: Pricing Team",
+      "date": "2026-09-29",
+      "type": "Irrelevant",
+      "processed": false,
+      "raw_body": "Thank you for contacting our team. We are out of office attending the Maritime Transport Conference until Oct 2. For urgent inquiries, email emergency@oceanlinklines.com.",
+      "skip_reason": "Automated out-of-office message contains no freight rates or shipment numbers."
+    },
+    {
+      "id": "EM007",
+      "from": "rates@bluewaveshipping.com",
+      "subject": "Rate Update",
+      "date": "2026-09-24",
+      "type": "Rate Update",
+      "processed": false,
+      "raw_body": "Notice: General rate revision incoming next quarter. Details to follow in upcoming advisory circular.",
+      "skip_reason": "General advisory notice without specific route ports, pricing or dates."
+    },
+    {
+      "id": "EM008",
+      "from": "tracking@pacificstarline.com",
+      "subject": "URGENT",
+      "date": "2026-09-27",
+      "type": "Shipment Update",
+      "processed": false,
+      "raw_body": "URGENT: Port congestion advisory issued for Los Angeles terminal. Expect delays of 2-3 days for berth access.",
+      "skip_reason": "Terminal advisory missing specific tracking container or shipment ID."
+    },
+    {
+      "id": "EM009",
+      "from": "rates@msc.com",
+      "subject": "Rate Update - Mumbai to Rotterdam",
+      "date": "2026-10-06",
+      "type": "Rate Update",
+      "processed": true,
+      "raw_body": "Rate updated for MSC shipping line.\nRoute: Mumbai to Rotterdam\nContainer: 40ft\nNew rate: $1,700\nTransit time: 18 days\nEffective immediately.",
+      "parsed_payload": {
+        "carrier": "MSC",
+        "origin_port": "Mumbai",
+        "destination_port": "Rotterdam",
+        "container_type": "40ft",
+        "rate_usd": 1700,
+        "transit_days": 18
+      },
+      "applied_action": "Rate updated for MSC | Mumbai -> Rotterdam | 40ft (New rate: $1,700)"
+    },
+    {
+      "id": "EM010",
+      "from": "tracking@maersk.com",
+      "subject": "Shipment SH001 - Delivery Notice",
+      "date": "2026-10-06",
+      "type": "Shipment Update",
+      "processed": true,
+      "raw_body": "Notice: Shipment SH001 arrived at port terminal and consignee delivery has been completed.\nShipment SH001 marked as Delivered.\nDelivered date: 06 Oct 2026.",
+      "parsed_payload": {
+        "shipment_id": "SH001",
+        "new_status": "Delivered",
+        "delivered_date": "2026-10-06"
+      },
+      "applied_action": "Shipment SH001 marked as Delivered (Delivered date: 06 Oct 2026)"
+    },
+    {
+      "id": "EM011",
+      "from": "info@cma-cgm.com",
+      "subject": "Rate Notice - Shanghai to Los Angeles",
+      "date": "2026-10-05",
+      "type": "Rate Update",
+      "processed": true,
+      "raw_body": "CMA CGM Tariff Bulletin:\nRoute: Shanghai to Los Angeles\nContainer: 40ft\nNew spot rate: $1,900\nTransit: 17 days.",
+      "parsed_payload": {
+        "carrier": "CMA CGM",
+        "origin_port": "Shanghai",
+        "destination_port": "Los Angeles",
+        "container_type": "40ft",
+        "rate_usd": 1900,
+        "transit_days": 17
+      },
+      "applied_action": "Rate updated for CMA CGM | Shanghai -> Los Angeles | 40ft (New rate: $1,900)"
+    },
+    {
+      "id": "EM012",
+      "from": "meetings@company.com",
+      "subject": "Team Meeting Reminder",
+      "date": "2026-10-04",
+      "type": "Irrelevant",
+      "processed": false,
+      "raw_body": "Reminder: The global logistics quarterly pipeline meeting is scheduled for Thursday at 3:00 PM UTC on Google Meet.",
+      "skip_reason": "Internal administrative calendar invite."
+    },
+    {
+      "id": "EM013",
+      "from": "alerts@globalmariner.com",
+      "subject": "Shipment SH003 Status Notice",
+      "date": "2026-10-02",
+      "type": "Shipment Update",
+      "processed": true,
+      "raw_body": "Shipment SH003 has been delayed due to port congestion.\nShipment SH003 marked as Delayed.\nExpected: 02 Oct 2026 | Current: In Transit / Delayed.",
+      "parsed_payload": {
+        "shipment_id": "SH003",
+        "new_status": "Delayed"
+      },
+      "applied_action": "Shipment SH003 marked as Delayed (Expected: 02 Oct 2026 | Current: Delayed)"
+    },
+    {
+      "id": "EM014",
+      "from": "newsletter@maritimejournal.com",
+      "subject": "Weekly Global Bunker & Freight Index",
+      "date": "2026-10-01",
+      "type": "Irrelevant",
+      "processed": false,
+      "raw_body": "Read the top stories in commercial shipping: New Suez canal tariffs, green methanol vessel orders, and seasonal Pacific peak surcharge forecasts.",
+      "skip_reason": "Industry media newsletter."
+    },
+    {
+      "id": "EM015",
+      "from": "rates@bluewaveshipping.com",
+      "subject": "Spot Rate Revision: Shanghai to Dubai 20ft",
+      "date": "2026-09-30",
+      "type": "Rate Update",
+      "processed": true,
+      "raw_body": "Please note tariff revision for BlueWave Shipping:\nOrigin: Shanghai\nDestination: Dubai\nContainer: 20ft\nNew Rate: $1,180\nTransit: 17 days.",
+      "parsed_payload": {
+        "carrier": "BlueWave Shipping",
+        "origin_port": "Shanghai",
+        "destination_port": "Dubai",
+        "container_type": "20ft",
+        "rate_usd": 1180,
+        "transit_days": 17
+      },
+      "applied_action": "Updated BlueWave Shipping rate for Shanghai -> Dubai (20ft @ $1,180)"
+    }
+  ],
+  "activities": [
+    {
+      "id": "ACT_1791655332070",
+      "timestamp": "2026-10-10T18:02:12.070Z",
+      "timeAgo": "Just now",
+      "type": "shipment",
+      "title": "Invoice Audited for Shipment SH001",
+      "subtitle": "Overcharged: USD 1,550 vs contracted USD 1,420",
+      "badgeColor": "rose"
+    },
+    {
+      "id": "U001",
+      "timestamp": "2026-10-06T14:32:00",
+      "timeAgo": "2 hours ago",
+      "type": "rate",
+      "title": "Rate updated for MSC | Mumbai → Rotterdam | 40ft",
+      "subtitle": "New rate: $1,700",
+      "badgeColor": "emerald"
+    },
+    {
+      "id": "U002",
+      "timestamp": "2026-10-06T13:15:00",
+      "timeAgo": "3 hours ago",
+      "type": "shipment",
+      "title": "Shipment SH001 marked as Delivered",
+      "subtitle": "Delivered date: 06 Oct 2026",
+      "badgeColor": "blue"
+    },
+    {
+      "id": "U003",
+      "timestamp": "2026-10-05T16:00:00",
+      "timeAgo": "5 hours ago",
+      "type": "rate",
+      "title": "Rate updated for CMA CGM | Shanghai → Los Angeles | 40ft",
+      "subtitle": "New rate: $1,900",
+      "badgeColor": "purple"
+    },
+    {
+      "id": "U004",
+      "timestamp": "2026-10-03T11:20:00",
+      "timeAgo": "6 hours ago",
+      "type": "delayed",
+      "title": "Shipment SH003 marked as Delayed",
+      "subtitle": "Expected: 02 Oct 2026 | Current: Delayed hold",
+      "badgeColor": "rose"
+    }
+  ],
+  "invoiceAudits": [
+    {
+      "id": "AUD_1791655332070",
+      "shipment_id": "SH001",
+      "contracted_rate_usd": 1420,
+      "invoice_amount_usd": 1550,
+      "difference_usd": 130,
+      "status": "Overcharged",
+      "status_message": "Overcharged by USD 130",
+      "contracted_rate_inr": 118570,
+      "invoice_amount_inr": 129425,
+      "difference_inr": 10855,
+      "audited_by": "Ashwin Gupta",
+      "notes": "",
+      "timestamp": "2026-10-10T18:02:12.070Z"
+    },
+    {
+      "id": "AUD_001",
+      "shipment_id": "SH001",
+      "carrier": "OceanLink Lines",
+      "contracted_rate_usd": 1420,
+      "invoice_amount_usd": 1550,
+      "difference_usd": 130,
+      "status": "Overcharged",
+      "status_message": "Overcharged by USD 130",
+      "contracted_rate_inr": 118570,
+      "invoice_amount_inr": 129425,
+      "difference_inr": 10855,
+      "audited_by": "Ashwin Gupta",
+      "notes": "Bunker surcharge billed in excess of negotiated tariff",
+      "timestamp": "2026-10-06T15:00:00Z"
+    },
+    {
+      "id": "AUD_002",
+      "shipment_id": "SH002",
+      "carrier": "BlueWave Shipping",
+      "contracted_rate_usd": 1550,
+      "invoice_amount_usd": 1550,
+      "difference_usd": 0,
+      "status": "Correct Amount Charged",
+      "status_message": "Invoice amount is equal to the contracted rate",
+      "contracted_rate_inr": 129425,
+      "invoice_amount_inr": 129425,
+      "difference_inr": 0,
+      "audited_by": "Logistics Analyst",
+      "notes": "Exact match with contracted ocean tariff",
+      "timestamp": "2026-10-05T11:20:00Z"
+    }
+  ],
+  "settings": {
+    "inrExchangeRate": 83.5,
+    "appName": "BLUSPARK Ocean Freight Platform",
+    "autoDelayCheck": true,
+    "lastEmailSync": "2026-10-10T18:02:03.005Z"
+  }
+}

@@ -100,19 +100,19 @@ export const EmailProcessorView: React.FC<EmailProcessorViewProps> = ({
   };
 
   return (
-    <main className="flex-1 overflow-y-auto p-6" data-purpose="email-processor-view">
+    <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8" data-purpose="email-processor-view">
       {/* Top Title and Action Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 gap-3.5 sm:gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Rates &amp; Shipment Updates
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Automatically parse emails and update shipment and rate information.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Automatically parse carrier communications and update rate &amp; shipment records.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <span className="text-[11px] text-slate-400 hidden md:inline">
             Last processed: 06 Oct 2026, 14:32
           </span>
@@ -121,9 +121,9 @@ export const EmailProcessorView: React.FC<EmailProcessorViewProps> = ({
             type="button"
             onClick={handleProcessClick}
             disabled={isProcessing}
-            className="px-4 py-1.5 text-xs font-semibold text-white bg-[#0267eb] hover:bg-[#0053c0] active:bg-blue-800 rounded-md shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="w-full sm:w-auto px-4 py-2.5 sm:py-1.5 text-xs font-semibold text-white bg-[#0267eb] hover:bg-[#0053c0] active:bg-blue-800 rounded-lg sm:rounded-md shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[40px] sm:min-h-0"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
             <span>{isProcessing ? 'Processing...' : 'Process Emails'}</span>
           </button>
         </div>
@@ -133,17 +133,17 @@ export const EmailProcessorView: React.FC<EmailProcessorViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* BEGIN: SampleEmailsCard */}
         <section
-          className="lg:col-span-8 bg-white rounded-lg border border-slate-200/90 shadow-xs flex flex-col w-full"
+          className="lg:col-span-8 bg-white rounded-xl sm:rounded-lg border border-slate-200/90 shadow-xs flex flex-col w-full overflow-hidden"
           data-purpose="sample-emails-table"
         >
           {/* Card Header & Filter */}
-          <div className="px-5 py-3.5 flex flex-wrap items-center justify-between border-b border-slate-100 gap-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold text-slate-800">
-                Recent Updates ({filteredEmails.length})
+          <div className="px-4 sm:px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 gap-3">
+            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+              <h3 className="text-xs font-bold text-slate-800 shrink-0">
+                Updates ({filteredEmails.length})
               </h3>
               {/* Type Filter segmented pills */}
-              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded text-[11px]">
+              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded text-[11px] shrink-0">
                 <button
                   type="button"
                   onClick={() => setTypeFilter('All')}
@@ -191,12 +191,12 @@ export const EmailProcessorView: React.FC<EmailProcessorViewProps> = ({
               </div>
             </div>
 
-            <div className="relative w-48">
+            <div className="relative w-full sm:w-48">
               <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                 <Search className="h-3.5 w-3.5" />
               </span>
               <input
-                className="w-full text-xs pl-8 pr-2.5 py-1 bg-white border border-slate-200 rounded text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full text-xs pl-8 pr-2.5 py-1.5 sm:py-1 bg-white border border-slate-200 rounded text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Search emails..."
                 type="text"
                 value={searchQuery}
@@ -205,8 +205,45 @@ export const EmailProcessorView: React.FC<EmailProcessorViewProps> = ({
             </div>
           </div>
 
-          {/* Table Container */}
-          <div className="overflow-x-auto flex-1">
+          {/* Mobile Cards View (< md) */}
+          <div className="block md:hidden divide-y divide-slate-100">
+            {filteredEmails.map((email) => (
+              <div key={email.id} className="p-4 space-y-2 hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-slate-800 text-xs truncate max-w-[200px]">
+                    {email.from}
+                  </span>
+                  {getTypeBadge(email.type)}
+                </div>
+
+                <p className="text-xs text-slate-700 font-medium line-clamp-2">
+                  {email.subject}
+                </p>
+
+                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <span>{email.date}</span>
+                    <span>•</span>
+                    {email.processed ? (
+                      <span className="text-emerald-600 font-semibold">✓ Processed</span>
+                    ) : (
+                      <span className="text-slate-400">✕ Skipped</span>
+                    )}
+                  </div>
+                  <button
+                    className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition cursor-pointer"
+                    type="button"
+                    onClick={() => onOpenEmailDetails(email)}
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table Container (md+) */}
+          <div className="hidden md:block overflow-x-auto flex-1">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="text-[11px] font-semibold text-slate-600 border-b border-slate-100 bg-white">

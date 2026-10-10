@@ -15,6 +15,8 @@ interface SidebarProps {
   onNavigate: (nav: ActiveNav) => void;
   onLogout: () => void;
   pendingEmailCount?: number;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -22,29 +24,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNavigate,
   onLogout,
   pendingEmailCount = 0,
+  isMobileOpen = false,
+  onCloseMobile,
 }) => {
+  const handleItemClick = (nav: ActiveNav) => {
+    onNavigate(nav);
+    if (onCloseMobile) onCloseMobile();
+  };
+
   return (
-    <aside
-      className="w-60 bg-[#0d1b2e] text-slate-300 flex flex-col shrink-0 select-none min-h-screen border-r border-slate-800/80 transition-all"
-      data-purpose="main-sidebar"
-    >
-      {/* Brand Logo Area */}
-      <div className="h-14 flex items-center px-5 gap-2.5 border-b border-slate-800/60">
-        <div className="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center text-[#0267eb]">
-          <Layers className="w-5 h-5" />
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 md:hidden animate-in fade-in duration-200"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar Container: Permanent on md+, Drawer on mobile */}
+      <aside
+        className={`bg-[#0d1b2e] text-slate-300 flex flex-col shrink-0 select-none z-50 border-r border-slate-800/80 transition-all duration-300 ease-in-out ${
+          // Mobile drawer classes:
+          isMobileOpen
+            ? 'fixed inset-y-0 left-0 w-72 shadow-2xl flex md:relative md:w-60 md:shadow-none'
+            : 'hidden md:flex md:w-60 md:min-h-screen'
+        }`}
+        data-purpose="main-sidebar"
+      >
+        {/* Brand Logo Area */}
+        <div className="h-14 flex items-center justify-between px-5 border-b border-slate-800/60">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center text-[#0267eb]">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-wider text-white">BLUSPARK</span>
+              <span className="text-[9px] uppercase tracking-widest text-slate-400 font-medium">Logistics Intelligence</span>
+            </div>
+          </div>
+
+          {/* Close button on mobile drawer */}
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="md:hidden text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-slate-800 transition"
+            aria-label="Close navigation menu"
+          >
+            <span className="text-lg font-bold leading-none">✕</span>
+          </button>
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-bold tracking-wider text-white">BLUSPARK</span>
-          <span className="text-[9px] uppercase tracking-widest text-slate-400 font-medium">Logistics Intelligence</span>
-        </div>
-      </div>
 
       {/* Navigation Links */}
       <nav className="flex-1 px-3 py-4 space-y-1 text-xs font-medium">
         {/* Dashboard */}
         <button
           type="button"
-          onClick={() => onNavigate('dashboard')}
+          onClick={() => handleItemClick('dashboard')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
             activeNav === 'dashboard'
               ? 'bg-[#0062d2] text-white shadow-sm font-semibold'
@@ -58,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Rate Search */}
         <button
           type="button"
-          onClick={() => onNavigate('rate_search')}
+          onClick={() => handleItemClick('rate_search')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
             activeNav === 'rate_search'
               ? 'bg-[#0062d2] text-white shadow-sm font-semibold'
@@ -72,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Shipment Tracker */}
         <button
           type="button"
-          onClick={() => onNavigate('shipment_tracker')}
+          onClick={() => handleItemClick('shipment_tracker')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
             activeNav === 'shipment_tracker'
               ? 'bg-[#0062d2] text-white shadow-sm font-semibold'
@@ -86,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Invoice Checker */}
         <button
           type="button"
-          onClick={() => onNavigate('invoice_checker')}
+          onClick={() => handleItemClick('invoice_checker')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
             activeNav === 'invoice_checker'
               ? 'bg-[#0062d2] text-white shadow-sm font-semibold'
@@ -100,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Rates & Shipment Updates (Email Processor) */}
         <button
           type="button"
-          onClick={() => onNavigate('email_processor')}
+          onClick={() => handleItemClick('email_processor')}
           className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors text-left ${
             activeNav === 'email_processor'
               ? 'bg-[#0062d2] text-white shadow-sm font-semibold'
@@ -131,5 +168,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
     </aside>
+  </>
   );
 };

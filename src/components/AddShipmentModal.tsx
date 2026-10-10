@@ -66,19 +66,19 @@ export const AddShipmentModal: React.FC<AddShipmentModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-slate-50/60 shrink-0">
           <div>
-            <h3 className="text-base font-bold text-slate-900" id="modal-headline">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900" id="modal-headline">
               Add New Shipment
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
               Enter ocean freight shipment details to begin tracking.
             </p>
           </div>
           <button
-            className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-md hover:bg-slate-100 focus:outline-none"
+            className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-md hover:bg-slate-100 focus:outline-none cursor-pointer"
             onClick={onClose}
             title="Close"
             type="button"
@@ -88,8 +88,8 @@ export const AddShipmentModal: React.FC<AddShipmentModalProps> = ({
         </div>
 
         {/* Modal Form */}
-        <form className="p-6 space-y-4" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             {/* 1. ID Field */}
             <div>
               <label

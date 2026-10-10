@@ -105,25 +105,25 @@ export const InvoiceCheckerView: React.FC<InvoiceCheckerViewProps> = ({
   };
 
   return (
-    <main className="flex-1 p-8 overflow-y-auto" data-purpose="invoice-checker-view">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-y-auto" data-purpose="invoice-checker-view">
+      <div className="max-w-6xl mx-auto space-y-5 sm:space-y-6">
         {/* Page Heading */}
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Invoice Checker
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Verify invoices against contracted rates to detect overcharging.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Verify invoices against contracted carrier rates to detect overcharging.
           </p>
         </div>
 
         {/* BEGIN: InputRowSection */}
         <section
-          className="bg-transparent"
+          className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs"
           data-purpose="invoice-query-form"
         >
           <form
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5 sm:gap-4 items-end"
             onSubmit={handleCheckClick}
           >
             {/* Shipment ID Input */}

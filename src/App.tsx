@@ -19,15 +19,24 @@ import {
 import { applyEmailUpdates } from './utils/parser';
 import {
   loginApi,
+  logoutApi,
+  getStoredToken,
+  getStoredUser,
   createShipmentApi,
   updateShipmentStatusApi,
   bulkIngestRatesApi,
   triggerEmailParserApi,
+  fetchShipmentsApi,
+  fetchRatesApi,
+  fetchEmailsApi,
+  fetchActivitiesApi,
+  resetSystemDataApi,
 } from './utils/api';
 
 // Components
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { EmailDetailsModal } from './components/EmailDetailsModal';
 import { AddShipmentModal } from './components/AddShipmentModal';
 
@@ -40,9 +49,17 @@ import { InvoiceCheckerView } from './views/InvoiceCheckerView';
 import { EmailProcessorView } from './views/EmailProcessorView';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const [user, setUser] = useState<UserAccount>(INITIAL_USER);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    // Check if user has an existing session token and user profile
+    const token = getStoredToken();
+    const storedUser = getStoredUser();
+    return !!(token && storedUser);
+  });
+  const [user, setUser] = useState<UserAccount>(() => {
+    return getStoredUser() || INITIAL_USER;
+  });
   const [activeNav, setActiveNav] = useState<ActiveNav>('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Core application data state
   const [rates, setRates] = useState<CarrierRate[]>(() => {
@@ -82,12 +99,45 @@ export default function App() {
   const [isAddShipmentModalOpen, setIsAddShipmentModalOpen] = useState(false);
   const [auditShipmentId, setAuditShipmentId] = useState('SH001');
 
-  // Ensure backend JWT session token is primed for user
+  // Fetch live canonical data from backend database when authenticated
   useEffect(() => {
-    loginApi(user.email, 'password123').catch(() => {});
-  }, []);
+    if (!isAuthenticated) return;
+    let isMounted = true;
 
-  // Sync to local storage
+    async function initData() {
+      try {
+        const [backendShipments, backendRates, backendEmails, backendActivities] = await Promise.all([
+          fetchShipmentsApi(),
+          fetchRatesApi(),
+          fetchEmailsApi(),
+          fetchActivitiesApi(),
+        ]);
+
+        if (!isMounted) return;
+        if (backendShipments && backendShipments.length > 0) {
+          setShipments(backendShipments);
+        }
+        if (backendRates?.rates && backendRates.rates.length > 0) {
+          setRates(backendRates.rates);
+        }
+        if (backendEmails && backendEmails.length > 0) {
+          setEmails(backendEmails);
+        }
+        if (backendActivities && backendActivities.length > 0) {
+          setActivityUpdates(backendActivities);
+        }
+      } catch (err) {
+        console.warn('Initial backend sync:', err);
+      }
+    }
+
+    initData();
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
+
+  // Sync to local storage for offline caching
   useEffect(() => {
     localStorage.setItem('bluspark_rates', JSON.stringify(rates));
   }, [rates]);
@@ -111,7 +161,8 @@ export default function App() {
     setActiveNav('dashboard');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutApi();
     setIsAuthenticated(false);
   };
 
@@ -122,28 +173,42 @@ export default function App() {
   const handleImportRates = async (newRates: CarrierRate[]) => {
     // Bulk ingest into backend
     await bulkIngestRatesApi(newRates);
-    setRates((prev) => [...newRates, ...prev]);
+    const fresh = await fetchRatesApi();
+    if (fresh?.rates) {
+      setRates(fresh.rates);
+    } else {
+      setRates((prev) => [...newRates, ...prev]);
+    }
   };
 
   // Shipment Handlers
   const handleAddShipment = async (newShipment: Shipment) => {
     // Create via backend
-    await createShipmentApi(newShipment);
+    const res = await createShipmentApi(newShipment);
+    if (res.success && res.data) {
+      setShipments((prev) => [res.data!, ...prev.filter((s) => s.id !== res.data!.id && s.shipment_id !== res.data!.shipment_id)]);
+    } else {
+      setShipments((prev) => [newShipment, ...prev]);
+    }
 
-    setShipments((prev) => [newShipment, ...prev]);
-    // Also record activity
-    setActivityUpdates((prev) => [
-      {
-        id: `ACT_${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        timeAgo: 'Just now',
-        type: 'shipment',
-        title: `New shipment created: ${newShipment.shipment_id}`,
-        subtitle: `${newShipment.carrier} | ${newShipment.origin_port} → ${newShipment.destination_port}`,
-        badgeColor: 'blue',
-      },
-      ...prev,
-    ]);
+    // Refresh activities from backend
+    const freshActs = await fetchActivitiesApi();
+    if (freshActs) {
+      setActivityUpdates(freshActs);
+    } else {
+      setActivityUpdates((prev) => [
+        {
+          id: `ACT_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          timeAgo: 'Just now',
+          type: 'shipment',
+          title: `New shipment created: ${newShipment.shipment_id}`,
+          subtitle: `${newShipment.carrier} | ${newShipment.origin_port} → ${newShipment.destination_port}`,
+          badgeColor: 'blue',
+        },
+        ...prev,
+      ]);
+    }
   };
 
   const handleUpdateShipmentStatus = async (
@@ -169,6 +234,9 @@ export default function App() {
         return s;
       })
     );
+
+    const freshActs = await fetchActivitiesApi();
+    if (freshActs) setActivityUpdates(freshActs);
   };
 
   const handleAuditInvoice = (shipmentId: string) => {
@@ -181,38 +249,29 @@ export default function App() {
     // Trigger backend endpoint
     await triggerEmailParserApi();
 
-    let currentRates = [...rates];
-    let currentShipments = [...shipments];
-    const newActivities: ActivityUpdate[] = [];
+    // Re-sync with backend
+    const [freshShipments, freshRates, freshEmails, freshActs] = await Promise.all([
+      fetchShipmentsApi(),
+      fetchRatesApi(),
+      fetchEmailsApi(),
+      fetchActivitiesApi(),
+    ]);
 
-    const updatedEmails = emails.map((em) => {
-      if (!em.processed && em.type !== 'Irrelevant') {
-        const result = applyEmailUpdates(em, currentRates, currentShipments);
-        currentRates = result.updatedRates;
-        currentShipments = result.updatedShipments;
-        if (result.newActivity) {
-          newActivities.push(result.newActivity);
-        }
-        return { ...em, processed: true };
-      }
-      return em;
-    });
-
-    setEmails(updatedEmails);
-    setRates(currentRates);
-    setShipments(currentShipments);
-    if (newActivities.length > 0) {
-      setActivityUpdates((prev) => [...newActivities, ...prev]);
-    }
+    if (freshShipments) setShipments(freshShipments);
+    if (freshRates?.rates) setRates(freshRates.rates);
+    if (freshEmails) setEmails(freshEmails);
+    if (freshActs) setActivityUpdates(freshActs);
   };
 
   // Reset to initial baseline
-  const handleResetRates = () => {
+  const handleResetRates = async () => {
+    await resetSystemDataApi();
     setRates(INITIAL_RATES);
     localStorage.removeItem('bluspark_rates');
   };
 
-  const handleResetShipments = () => {
+  const handleResetShipments = async () => {
+    await resetSystemDataApi();
     setShipments(INITIAL_SHIPMENTS);
     localStorage.removeItem('bluspark_shipments');
   };
@@ -223,19 +282,27 @@ export default function App() {
   }
 
   return (
-    <div className="bg-[#f0f4f9] text-slate-800 antialiased min-h-screen flex selection:bg-blue-500 selection:text-white">
-      {/* Sidebar Navigation */}
+    <div className="bg-[#f0f4f9] text-slate-800 antialiased min-h-screen flex selection:bg-blue-500 selection:text-white relative">
+      {/* Sidebar Navigation (Permanent on desktop, Drawer on mobile) */}
       <Sidebar
         activeNav={activeNav}
-        onNavigate={setActiveNav}
+        onNavigate={(nav) => {
+          setActiveNav(nav);
+          setIsMobileMenuOpen(false);
+        }}
         onLogout={handleLogout}
         pendingEmailCount={emails.filter((e) => !e.processed && e.type !== 'Irrelevant').length}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
-        <TopBar user={user} />
+        <TopBar
+          user={user}
+          onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+        />
 
         {/* Viewport Router */}
         {activeNav === 'dashboard' && (
@@ -284,6 +351,13 @@ export default function App() {
           />
         )}
       </div>
+
+      {/* Mobile Bottom Navigation Bar (Visible on mobile/tablets < md) */}
+      <MobileBottomNav
+        activeNav={activeNav}
+        onNavigate={setActiveNav}
+        pendingEmailCount={emails.filter((e) => !e.processed && e.type !== 'Irrelevant').length}
+      />
 
       {/* Global Modals */}
       <EmailDetailsModal

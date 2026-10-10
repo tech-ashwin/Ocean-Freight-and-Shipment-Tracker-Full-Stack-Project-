@@ -34,14 +34,14 @@ export const EmailDetailsModal: React.FC<EmailDetailsModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+      <div className="bg-white w-full max-w-lg max-h-[92vh] rounded-xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-start justify-between shrink-0">
           <div className="space-y-0.5">
-            <h3 id="modal-title" className="text-base font-bold text-slate-900 tracking-tight">
+            <h3 id="modal-title" className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
               Email Details
             </h3>
-            <p id="modal-subtitle" className="text-xs text-slate-500">
+            <p id="modal-subtitle" className="text-[11px] sm:text-xs text-slate-500">
               Parsed freight communication details and payload
             </p>
           </div>
@@ -49,14 +49,14 @@ export const EmailDetailsModal: React.FC<EmailDetailsModalProps> = ({
             id="close-modal-x"
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100 transition inline-flex items-center justify-center"
+            className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100 transition inline-flex items-center justify-center cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-4 text-xs">
+        <div className="p-4 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
           {/* Metadata Card */}
           <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-lg border border-slate-100">
             <div>
