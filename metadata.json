@@ -1,0 +1,6 @@
+{
+  "name": "BLUSPARK - Ocean Freight Rate & Shipment Tracker",
+  "description": "Comprehensive ocean freight intelligence platform featuring rate search, shipment tracking, automated email parsing, and invoice verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
