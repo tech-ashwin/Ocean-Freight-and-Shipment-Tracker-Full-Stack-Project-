@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { UserAccount } from '../types';
-import { loginUser, registerUser, forgotPassword } from '../utils/auth';
+import { loginUser, registerUser } from '../utils/auth';
 
 interface LoginViewProps {
   onLogin: (user: UserAccount) => void;
@@ -39,12 +39,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // Forgot Password modal
-  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotFeedback, setForgotFeedback] = useState<string | null>(null);
-  const [isForgotSubmitting, setIsForgotSubmitting] = useState(false);
 
   useEffect(() => {
     localStorage.removeItem('bluspark_remembered_user');
@@ -131,20 +125,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         setErrorMessage(err.message || 'Quick login failed');
         setIsSubmitting(false);
       });
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsForgotSubmitting(true);
-    setForgotFeedback(null);
-    try {
-      const msg = await forgotPassword(forgotEmail);
-      setForgotFeedback(msg || 'Password reset instructions have been dispatched.');
-    } catch (err: any) {
-      setForgotFeedback(err.message || 'Unable to dispatch reset email.');
-    } finally {
-      setIsForgotSubmitting(false);
-    }
   };
 
   return (
@@ -339,18 +319,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
               {/* Field 2: Password */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-medium text-slate-700" htmlFor="password">
-                    Password
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsForgotModalOpen(true)}
-                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
+                <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor="password">
+                  Password
+                </label>
                 <div className="relative rounded-lg border border-slate-300 shadow-xs focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition bg-white">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <Lock className="h-4 w-4" />
@@ -613,97 +584,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         </div>
       </main>
       {/* END: RightAuthSection */}
-
-      {/* Forgot Password Modal */}
-      {isForgotModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 p-6 relative animate-fadeIn">
-            <button
-              type="button"
-              onClick={() => {
-                setIsForgotModalOpen(false);
-                setForgotFeedback(null);
-              }}
-              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Lock className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Reset Your Password</h3>
-                <p className="text-xs text-slate-500">Enter your email for access instructions</p>
-              </div>
-            </div>
-
-            {forgotFeedback ? (
-              <div className="p-3.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-xs">
-                <p className="font-semibold mb-1">Status Update</p>
-                <p>{forgotFeedback}</p>
-                <div className="mt-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsForgotModalOpen(false);
-                      setForgotFeedback(null);
-                    }}
-                    className="px-3.5 py-1.5 rounded-md bg-blue-600 text-white font-medium text-xs hover:bg-blue-700 cursor-pointer"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor="forgotEmail">
-                    Account Email
-                  </label>
-                  <input
-                    id="forgotEmail"
-                    type="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="e.g. ashwingupta2027@gmail.com"
-                    required
-                  />
-                </div>
-
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
-                  <span className="font-semibold text-slate-800">Quick Hint:</span> Preconfigured demo
-                  accounts (Ashwin Gupta, Operator, Analyst) use the password{' '}
-                  <code className="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-900">
-                    password123
-                  </code>
-                  .
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsForgotModalOpen(false)}
-                    className="px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isForgotSubmitting}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
-                  >
-                    {isForgotSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    <span>Request Reset</span>
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
