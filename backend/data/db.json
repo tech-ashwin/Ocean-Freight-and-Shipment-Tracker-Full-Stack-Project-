@@ -1,0 +1,267 @@
+{
+  "users": [
+    {
+      "id": "user_default_1",
+      "name": "Ashwin Gupta",
+      "email": "ashwingupta2027@gmail.com",
+      "passwordHash": "$2a$10$wTf7h9Xq3v9p2E6sT.840ez38eJ6KspKx8mP30oQ4.fEcr8k4bKwe",
+      "role": "User",
+      "createdAt": "2026-10-10T00:00:00.000Z"
+    },
+    {
+      "id": "user_1791707711755",
+      "name": "ABC",
+      "email": "business.ashwin2027@gmail.com",
+      "passwordHash": "$2b$10$EBjcrZeSIeBVVfaoif4kneogbgJQIOOI/SgTbtWKbmjXn0mt0v05e",
+      "role": "User",
+      "createdAt": "2026-10-11T08:35:11.755Z"
+    }
+  ],
+  "rates": [
+    {
+      "id": "R001",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1420,
+      "transit_days": 22,
+      "source": "csv",
+      "updated_at": "2026-09-20"
+    },
+    {
+      "id": "R002",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1550,
+      "transit_days": 20,
+      "source": "csv",
+      "updated_at": "2026-09-21"
+    },
+    {
+      "id": "R003",
+      "carrier": "GlobalMariner",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1680,
+      "transit_days": 19,
+      "source": "csv",
+      "updated_at": "2026-09-22"
+    },
+    {
+      "id": "R004",
+      "carrier": "PacificStar Line",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1490,
+      "transit_days": 23,
+      "source": "csv",
+      "updated_at": "2026-09-23"
+    },
+    {
+      "id": "R005",
+      "carrier": "AtlasSea Carriers",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "rate_usd": 1610,
+      "transit_days": 21,
+      "source": "csv",
+      "updated_at": "2026-09-24"
+    },
+    {
+      "id": "R006",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Shanghai",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "rate_usd": 2150,
+      "transit_days": 14,
+      "source": "csv",
+      "updated_at": "2026-09-22"
+    },
+    {
+      "id": "R007",
+      "carrier": "PacificStar Line",
+      "origin_port": "Shanghai",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "rate_usd": 2080,
+      "transit_days": 16,
+      "source": "csv",
+      "updated_at": "2026-09-20"
+    },
+    {
+      "id": "R008",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Singapore",
+      "destination_port": "Dubai",
+      "container_type": "20ft",
+      "rate_usd": 880,
+      "transit_days": 11,
+      "source": "csv",
+      "updated_at": "2026-09-25"
+    },
+    {
+      "id": "R009",
+      "carrier": "GlobalMariner",
+      "origin_port": "Hamburg",
+      "destination_port": "New York",
+      "container_type": "40ft",
+      "rate_usd": 1750,
+      "transit_days": 12,
+      "source": "csv",
+      "updated_at": "2026-09-24"
+    }
+  ],
+  "shipments": [
+    {
+      "id": "S001",
+      "shipment_id": "SH-2026-001",
+      "carrier": "OceanLink Lines",
+      "origin_port": "Mumbai",
+      "destination_port": "Rotterdam",
+      "container_type": "40ft",
+      "departure_date": "2026-09-15",
+      "expected_arrival": "2026-10-07",
+      "delivered_date": null,
+      "status": "Delayed",
+      "contracted_rate_usd": 1420,
+      "invoice_amount_usd": 1420
+    },
+    {
+      "id": "S002",
+      "shipment_id": "SH-2026-002",
+      "carrier": "BlueWave Shipping",
+      "origin_port": "Shanghai",
+      "destination_port": "Los Angeles",
+      "container_type": "40ft",
+      "departure_date": "2026-09-28",
+      "expected_arrival": "2026-10-14",
+      "delivered_date": null,
+      "status": "In Transit",
+      "contracted_rate_usd": 2150,
+      "invoice_amount_usd": 2280
+    },
+    {
+      "id": "S003",
+      "shipment_id": "SH-2026-003",
+      "carrier": "PacificStar Line",
+      "origin_port": "Singapore",
+      "destination_port": "Dubai",
+      "container_type": "20ft",
+      "departure_date": "2026-09-20",
+      "expected_arrival": "2026-10-01",
+      "delivered_date": "2026-10-01",
+      "status": "Delivered",
+      "contracted_rate_usd": 880,
+      "invoice_amount_usd": 880
+    },
+    {
+      "id": "S004",
+      "shipment_id": "SH-2026-004",
+      "carrier": "GlobalMariner",
+      "origin_port": "Hamburg",
+      "destination_port": "New York",
+      "container_type": "40ft",
+      "departure_date": "2026-10-02",
+      "expected_arrival": "2026-10-15",
+      "delivered_date": null,
+      "status": "In Transit",
+      "contracted_rate_usd": 1750,
+      "invoice_amount_usd": 1750
+    },
+    {
+      "id": "S005",
+      "shipment_id": "SH-2026-005",
+      "carrier": "AtlasSea Carriers",
+      "origin_port": "Nhava Sheva",
+      "destination_port": "Savannah",
+      "container_type": "40ft",
+      "departure_date": "2026-09-10",
+      "expected_arrival": "2026-10-05",
+      "delivered_date": null,
+      "status": "Delayed",
+      "contracted_rate_usd": 1980,
+      "invoice_amount_usd": 2150
+    }
+  ],
+  "emails": [
+    {
+      "id": "EML-001",
+      "from": "pricing@pacificstarline.com",
+      "subject": "Special Spot Quotation: Mumbai to Rotterdam 40ft HC",
+      "date": "2026-10-05 09:30",
+      "type": "Rate Update",
+      "processed": false,
+      "raw_body": "Dear Valued Customer,\n\nPlease find our updated ocean freight rate for October loadings:\n- Origin: Mumbai Port\n- Destination: Rotterdam\n- Equipment: 40ft High Cube\n- Ocean Freight Rate: USD 1,380\n- Transit Time: 21 Days\n- Effective Date: Immediately through Oct 31, 2026\n\nBest regards,\nPacificStar Line Pricing Desk",
+      "parsed_payload": {
+        "carrier": "PacificStar Line",
+        "origin_port": "Mumbai",
+        "destination_port": "Rotterdam",
+        "container_type": "40ft",
+        "rate_usd": 1380,
+        "transit_days": 21,
+        "validity": "October 31, 2026"
+      }
+    },
+    {
+      "id": "EML-002",
+      "from": "tracking@oceanlinklines.com",
+      "subject": "Vessel Arrival Notice & Discharge Confirmation - SH-2026-001",
+      "date": "2026-10-08 14:15",
+      "type": "Shipment Update",
+      "processed": false,
+      "raw_body": "Notification for shipment ref: SH-2026-001\n\nWe are pleased to inform you that container MSKU9920140 has completed discharge at Rotterdam Gateway.\n- Shipment Ref: SH-2026-001\n- Current Status: Delivered\n- Actual Delivered Date: 2026-10-08\n\nThank you for shipping with OceanLink Lines.",
+      "parsed_payload": {
+        "shipment_id": "SH-2026-001",
+        "carrier": "OceanLink Lines",
+        "new_status": "Delivered",
+        "delivered_date": "2026-10-08"
+      }
+    },
+    {
+      "id": "EML-003",
+      "from": "marketing@globalmariner.com",
+      "subject": "Join our Annual Maritime Supply Chain Webinar",
+      "date": "2026-10-09 11:00",
+      "type": "Irrelevant",
+      "processed": false,
+      "raw_body": "Hi team, register now for our free webinar on green corridors in shipping!",
+      "skip_reason": "Marketing newsletter, no actionable rate or shipment update"
+    }
+  ],
+  "activityUpdates": [
+    {
+      "id": "ACT-001",
+      "timestamp": "2026-10-10 11:45",
+      "timeAgo": "12m ago",
+      "type": "rate",
+      "title": "New spot rate detected: Mumbai → Rotterdam",
+      "subtitle": "PacificStar Line quoted USD 1,380 (saving $40 vs benchmark)",
+      "badgeColor": "emerald"
+    },
+    {
+      "id": "ACT-002",
+      "timestamp": "2026-10-10 09:15",
+      "timeAgo": "2h ago",
+      "type": "shipment",
+      "title": "Status changed: SH-2026-001 marked Delivered",
+      "subtitle": "Discharged at Rotterdam Terminal on Oct 8",
+      "badgeColor": "blue"
+    },
+    {
+      "id": "ACT-003",
+      "timestamp": "2026-10-09 16:30",
+      "timeAgo": "Yesterday",
+      "type": "delayed",
+      "title": "Delay Alert: SH-2026-005 Savannah route",
+      "subtitle": "Port congestion reported at destination terminal",
+      "badgeColor": "amber"
+    }
+  ]
+}

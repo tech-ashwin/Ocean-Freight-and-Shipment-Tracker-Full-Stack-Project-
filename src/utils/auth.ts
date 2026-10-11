@@ -46,7 +46,7 @@ export async function refreshTokenSession(): Promise<string | null> {
       body: JSON.stringify({ refreshToken }),
     });
 
-    const data = await res.json();
+    const data = await parseJsonSafely(res);
     if (res.ok && data.success && (data.accessToken || data.token)) {
       const newAccess = data.accessToken || data.token;
       setStoredAuth(newAccess, data.user, data.refreshToken || refreshToken);
@@ -82,6 +82,18 @@ async function authenticatedFetch(url: string, options: RequestInit = {}): Promi
   return res;
 }
 
+async function parseJsonSafely(res: Response): Promise<any> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    if (!res.ok) {
+      throw new Error(`Server temporarily unavailable (${res.status}). Please try again in a moment.`);
+    }
+    throw new Error('Unexpected response format from server.');
+  }
+}
+
 // ---------------- AUTH API ----------------
 
 export async function loginUser(emailOrUsername: string, password: string): Promise<{ token: string; user: UserAccount }> {
@@ -91,7 +103,7 @@ export async function loginUser(emailOrUsername: string, password: string): Prom
     body: JSON.stringify({ username: emailOrUsername, password }),
   });
 
-  const data = await res.json();
+  const data = await parseJsonSafely(res);
   if (!res.ok || !data.success) {
     throw new Error(data.message || 'Authentication failed');
   }
@@ -108,7 +120,7 @@ export async function registerUser(name: string, email: string, password: string
     body: JSON.stringify({ name, email, password }),
   });
 
-  const data = await res.json();
+  const data = await parseJsonSafely(res);
   if (!res.ok || !data.success) {
     throw new Error(data.message || 'Registration failed');
   }
@@ -125,7 +137,7 @@ export async function forgotPassword(email: string): Promise<string> {
     body: JSON.stringify({ email }),
   });
 
-  const data = await res.json();
+  const data = await parseJsonSafely(res);
   if (!res.ok || !data.success) {
     throw new Error(data.message || 'Unable to process reset request');
   }
