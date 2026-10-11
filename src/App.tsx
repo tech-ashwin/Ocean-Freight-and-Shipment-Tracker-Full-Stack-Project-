@@ -297,7 +297,6 @@ export default function App() {
         <TopBar
           user={user}
           onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
-          onOpenDatabaseModal={() => setIsDbModalOpen(true)}
         />
 
         {/* Viewport Router */}
