@@ -4,10 +4,10 @@ import { db, CarrierRateRecord } from '../db.js';
 export const ratesRouter = Router();
 
 // GET /api/rates - Search and list rates
-ratesRouter.get('/', (req: Request, res: Response) => {
+ratesRouter.get('/', async (req: Request, res: Response) => {
   try {
     const { origin, destination, container_type, carrier } = req.query;
-    let rates = db.getRates();
+    let rates = await db.getRates();
 
     if (origin && typeof origin === 'string') {
       rates = rates.filter(r => r.origin_port.toLowerCase() === origin.toLowerCase());
@@ -36,7 +36,7 @@ ratesRouter.get('/', (req: Request, res: Response) => {
 });
 
 // POST /api/rates - Ingest or update single rate
-ratesRouter.post('/', (req: Request, res: Response) => {
+ratesRouter.post('/', async (req: Request, res: Response) => {
   try {
     const { carrier, origin_port, destination_port, container_type, rate_usd, transit_days, source } = req.body;
     if (!carrier || !origin_port || !destination_port || !container_type || rate_usd === undefined) {
@@ -55,7 +55,7 @@ ratesRouter.post('/', (req: Request, res: Response) => {
       updated_at: new Date().toISOString().split('T')[0]
     };
 
-    const saved = db.upsertRate(newRate);
+    const saved = await db.upsertRate(newRate);
     res.status(201).json({ success: true, data: saved });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -63,15 +63,16 @@ ratesRouter.post('/', (req: Request, res: Response) => {
 });
 
 // POST /api/rates/bulk - Bulk ingest rates (e.g., from CSV or parser batch)
-ratesRouter.post('/bulk', (req: Request, res: Response) => {
+ratesRouter.post('/bulk', async (req: Request, res: Response) => {
   try {
     const { rates } = req.body;
     if (!Array.isArray(rates)) {
       return res.status(400).json({ success: false, message: 'Invalid payload: rates array expected' });
     }
 
-    const updated = rates.map((r: any) => {
-      return db.upsertRate({
+    const results: CarrierRateRecord[] = [];
+    for (const r of rates) {
+      const saved = await db.upsertRate({
         id: r.id || `R_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         carrier: r.carrier,
         origin_port: r.origin_port,
@@ -82,18 +83,19 @@ ratesRouter.post('/bulk', (req: Request, res: Response) => {
         source: r.source || 'csv',
         updated_at: r.updated_at || new Date().toISOString().split('T')[0]
       });
-    });
+      results.push(saved);
+    }
 
-    res.json({ success: true, message: `Successfully synced ${updated.length} rates`, count: updated.length });
+    res.json({ success: true, message: `Successfully synced ${results.length} rates`, count: results.length });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 // POST /api/rates/reset - Restore initial rates
-ratesRouter.post('/reset', (req: Request, res: Response) => {
+ratesRouter.post('/reset', async (req: Request, res: Response) => {
   try {
-    const reset = db.resetRates(req.body.rates);
+    const reset = await db.resetRates(req.body.rates);
     res.json({ success: true, message: 'Rates table reset successfully', count: reset.length });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

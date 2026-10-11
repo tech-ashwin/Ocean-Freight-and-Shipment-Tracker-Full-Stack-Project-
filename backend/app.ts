@@ -5,6 +5,8 @@ import { ratesRouter } from './routes/rates.js';
 import { shipmentsRouter } from './routes/shipments.js';
 import { emailsRouter } from './routes/emails.js';
 import { statsRouter } from './routes/stats.js';
+import { databaseRouter } from './routes/database.js';
+import { db } from './db.js';
 
 export function createBackendApp() {
   const app = express();
@@ -19,13 +21,17 @@ export function createBackendApp() {
   app.use('/api/shipments', shipmentsRouter);
   app.use('/api/emails', emailsRouter);
   app.use('/api/stats', statsRouter);
+  app.use('/api/database', databaseRouter);
 
   // Health check endpoint
-  app.get('/api/health', (_req, res) => {
+  app.get('/api/health', async (_req, res) => {
+    const dbStatus = await db.getStatus();
     res.json({
       status: 'healthy',
       service: 'bluspark-freight-ops-backend',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      database: dbStatus.activeEngine,
+      isMongoConnected: dbStatus.isMongoConnected
     });
   });
 

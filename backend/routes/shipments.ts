@@ -4,10 +4,10 @@ import { db, ShipmentRecord } from '../db.js';
 export const shipmentsRouter = Router();
 
 // GET /api/shipments - List shipments with auto delay calculation
-shipmentsRouter.get('/', (req: Request, res: Response) => {
+shipmentsRouter.get('/', async (req: Request, res: Response) => {
   try {
     const { status, carrier } = req.query;
-    let shipments = db.getShipments();
+    let shipments = await db.getShipments();
 
     // Auto-evaluate delay status against current date (2026-10-10)
     const today = new Date('2026-10-10T00:00:00');
@@ -39,7 +39,7 @@ shipmentsRouter.get('/', (req: Request, res: Response) => {
 });
 
 // POST /api/shipments - Create a new shipment
-shipmentsRouter.post('/', (req: Request, res: Response) => {
+shipmentsRouter.post('/', async (req: Request, res: Response) => {
   try {
     const {
       shipment_id,
@@ -73,8 +73,8 @@ shipmentsRouter.post('/', (req: Request, res: Response) => {
       invoice_amount_usd: invoice_amount_usd !== undefined ? Number(invoice_amount_usd) : Number(contracted_rate_usd) || 0
     };
 
-    const added = db.addShipment(newShipment);
-    db.addActivityUpdate({
+    const added = await db.addShipment(newShipment);
+    await db.addActivityUpdate({
       id: `act_${Date.now()}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       timeAgo: 'Just now',
@@ -91,7 +91,7 @@ shipmentsRouter.post('/', (req: Request, res: Response) => {
 });
 
 // PATCH /api/shipments/:id/status - Update shipment status
-shipmentsRouter.patch('/:id/status', (req: Request, res: Response) => {
+shipmentsRouter.patch('/:id/status', async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { status, delivered_date } = req.body;
@@ -100,12 +100,12 @@ shipmentsRouter.patch('/:id/status', (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Invalid shipment status value' });
     }
 
-    const updated = db.updateShipmentStatus(String(id), status, delivered_date);
+    const updated = await db.updateShipmentStatus(String(id), status, delivered_date);
     if (!updated) {
       return res.status(404).json({ success: false, message: `Shipment with ID ${id} not found` });
     }
 
-    db.addActivityUpdate({
+    await db.addActivityUpdate({
       id: `act_${Date.now()}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       timeAgo: 'Just now',
@@ -122,9 +122,9 @@ shipmentsRouter.patch('/:id/status', (req: Request, res: Response) => {
 });
 
 // POST /api/shipments/reset - Reset shipments list
-shipmentsRouter.post('/reset', (req: Request, res: Response) => {
+shipmentsRouter.post('/reset', async (req: Request, res: Response) => {
   try {
-    const reset = db.resetShipments(req.body.shipments);
+    const reset = await db.resetShipments(req.body.shipments);
     res.json({ success: true, message: 'Shipments table reset successfully', count: reset.length });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

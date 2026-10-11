@@ -35,6 +35,7 @@ import { TopBar } from './components/TopBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { EmailDetailsModal } from './components/EmailDetailsModal';
 import { AddShipmentModal } from './components/AddShipmentModal';
+import { DatabaseStatusModal } from './components/DatabaseStatusModal';
 
 // Views
 import { LoginView } from './views/LoginView';
@@ -56,6 +57,7 @@ export default function App() {
   });
   const [activeNav, setActiveNav] = useState<ActiveNav>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isDbModalOpen, setIsDbModalOpen] = useState<boolean>(false);
 
   // Core application data state
   const [rates, setRates] = useState<CarrierRate[]>(() => {
@@ -295,6 +297,7 @@ export default function App() {
         <TopBar
           user={user}
           onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+          onOpenDatabaseModal={() => setIsDbModalOpen(true)}
         />
 
         {/* Viewport Router */}
@@ -367,6 +370,11 @@ export default function App() {
         onClose={() => setIsAddShipmentModalOpen(false)}
         onAddShipment={handleAddShipment}
         nextIdSuggestion={`SH00${shipments.length + 1}`}
+      />
+
+      <DatabaseStatusModal
+        isOpen={isDbModalOpen}
+        onClose={() => setIsDbModalOpen(false)}
       />
     </div>
   );

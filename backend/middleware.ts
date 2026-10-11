@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'bluspark-freight-ops-secret-key-2026';
+export const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'a73b033715bbde9f6dc7fd3ac2d72f2a563a611072083d83a3a9ab98348a0317';
+export const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'e507b4f57df0d33094a83119d2bfc47b30c53755053dd56326c8aa93b5466ce8';
+export const JWT_SECRET = JWT_ACCESS_SECRET;
 
 export interface AuthenticatedUser {
   id: string;

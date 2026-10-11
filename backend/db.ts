@@ -1,85 +1,52 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  connectMongo,
+  isMongoActive,
+  getUsersCollection,
+  getRatesCollection,
+  getShipmentsCollection,
+  getEmailsCollection,
+  getActivityCollection,
+  getMongoError,
+  DB_NAME,
+  DEFAULT_MONGO_URI
+} from './mongodb.js';
+import {
+  UserRecord,
+  CarrierRateRecord,
+  ShipmentRecord,
+  EmailRecordItem,
+  ActivityUpdateRecord,
+  DatabaseSchema
+} from './types.js';
+
+export * from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-export interface UserRecord {
-  id: string;
-  name: string;
-  email: string;
-  passwordHash: string;
-  role: 'Admin' | 'User';
-  createdAt: string;
-}
-
-export interface CarrierRateRecord {
-  id: string;
-  carrier: string;
-  origin_port: string;
-  destination_port: string;
-  container_type: '20ft' | '40ft';
-  rate_usd: number;
-  transit_days: number;
-  updated_at: string;
-  source: 'csv' | 'email' | 'manual';
-}
-
-export interface ShipmentRecord {
-  id: string;
-  shipment_id: string;
-  carrier: string;
-  origin_port: string;
-  destination_port: string;
-  container_type: '20ft' | '40ft';
-  departure_date: string;
-  expected_arrival: string;
-  delivered_date?: string | null;
-  status: 'In Transit' | 'Delivered' | 'Delayed';
-  contracted_rate_usd: number;
-  invoice_amount_usd?: number;
-}
-
-export interface EmailRecordItem {
-  id: string;
-  from: string;
-  subject: string;
-  date: string;
-  type: 'Rate Update' | 'Shipment Update' | 'Irrelevant';
-  processed: boolean;
-  raw_body: string;
-  parsed_payload?: any;
-  skip_reason?: string;
-  applied_action?: string;
-}
-
-export interface ActivityUpdateRecord {
-  id: string;
-  timestamp: string;
-  timeAgo: string;
-  type: 'rate' | 'shipment' | 'delayed';
-  title: string;
-  subtitle: string;
-  badgeColor?: string;
-}
-
-export interface DatabaseSchema {
-  users: UserRecord[];
-  rates: CarrierRateRecord[];
-  shipments: ShipmentRecord[];
-  emails: EmailRecordItem[];
-  activityUpdates: ActivityUpdateRecord[];
-}
-
-export class JsonDatabase {
-  private db: DatabaseSchema;
+export class LogisticsDatabase {
+  private fileDb: DatabaseSchema;
+  private isInitialized = false;
 
   constructor() {
     this.ensureDirectoryAndFile();
-    this.db = this.load();
+    this.fileDb = this.loadFromFile();
+  }
+
+  public async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+    this.isInitialized = true;
+
+    // Attempt MongoDB connection
+    const mongoSuccess = await connectMongo();
+    if (mongoSuccess) {
+      await this.autoSeedMongoIfEmpty();
+    }
   }
 
   private ensureDirectoryAndFile() {
@@ -92,7 +59,7 @@ export class JsonDatabase {
     }
   }
 
-  private load(): DatabaseSchema {
+  private loadFromFile(): DatabaseSchema {
     try {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
       return JSON.parse(content);
@@ -101,15 +68,15 @@ export class JsonDatabase {
     }
   }
 
-  private save() {
+  private saveToFile() {
     try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.db, null, 2), 'utf-8');
+      fs.writeFileSync(DB_FILE, JSON.stringify(this.fileDb, null, 2), 'utf-8');
     } catch (err) {
       console.error('Error saving db.json:', err);
     }
   }
 
-  private getDefaultData(): DatabaseSchema {
+  public getDefaultData(): DatabaseSchema {
     return {
       users: [
         {
@@ -250,12 +217,12 @@ export class JsonDatabase {
           delivered_date: null,
           status: 'In Transit',
           contracted_rate_usd: 2150,
-          invoice_amount_usd: 2280
+          invoice_amount_usd: 2150
         },
         {
           id: 'S003',
           shipment_id: 'SH-2026-003',
-          carrier: 'PacificStar Line',
+          carrier: 'GlobalMariner',
           origin_port: 'Singapore',
           destination_port: 'Dubai',
           container_type: '20ft',
@@ -269,16 +236,16 @@ export class JsonDatabase {
         {
           id: 'S004',
           shipment_id: 'SH-2026-004',
-          carrier: 'GlobalMariner',
-          origin_port: 'Hamburg',
-          destination_port: 'New York',
+          carrier: 'PacificStar Line',
+          origin_port: 'Mumbai',
+          destination_port: 'Rotterdam',
           container_type: '40ft',
-          departure_date: '2026-10-02',
-          expected_arrival: '2026-10-15',
+          departure_date: '2026-10-01',
+          expected_arrival: '2026-10-24',
           delivered_date: null,
           status: 'In Transit',
-          contracted_rate_usd: 1750,
-          invoice_amount_usd: 1750
+          contracted_rate_usd: 1490,
+          invoice_amount_usd: 1490
         },
         {
           id: 'S005',
@@ -288,63 +255,44 @@ export class JsonDatabase {
           destination_port: 'Savannah',
           container_type: '40ft',
           departure_date: '2026-09-10',
-          expected_arrival: '2026-10-05',
+          expected_arrival: '2026-10-06',
           delivered_date: null,
           status: 'Delayed',
-          contracted_rate_usd: 1980,
-          invoice_amount_usd: 2150
+          contracted_rate_usd: 1850,
+          invoice_amount_usd: 1850
         }
       ],
       emails: [
         {
           id: 'EML-001',
-          from: 'pricing@pacificstarline.com',
-          subject: 'Special Spot Quotation: Mumbai to Rotterdam 40ft HC',
-          date: '2026-10-05 09:30',
+          from: 'rates-desk@oceanlink.com',
+          subject: 'Revised Spot Freight Q4: Nhava Sheva to Rotterdam',
+          date: '2026-10-10 08:30',
           type: 'Rate Update',
           processed: false,
-          raw_body: `Dear Valued Customer,
-
-Please find our updated ocean freight rate for October loadings:
-- Origin: Mumbai Port
-- Destination: Rotterdam
-- Equipment: 40ft High Cube
-- Ocean Freight Rate: USD 1,380
-- Transit Time: 21 Days
-- Effective Date: Immediately through Oct 31, 2026
-
-Best regards,
-PacificStar Line Pricing Desk`,
+          raw_body: `Dear Partner,\n\nPlease note our revised ocean freight spot rate for 40ft High Cube containers from Nhava Sheva (Mumbai) to Rotterdam is now USD 1,390 valid until end of month.\nTransit time: 21 days.\n\nBest regards,\nOceanLink Rates Desk`,
           parsed_payload: {
-            carrier: 'PacificStar Line',
+            carrier: 'OceanLink Lines',
             origin_port: 'Mumbai',
             destination_port: 'Rotterdam',
             container_type: '40ft',
-            rate_usd: 1380,
-            transit_days: 21,
-            validity: 'October 31, 2026'
+            rate_usd: 1390,
+            transit_days: 21
           }
         },
         {
           id: 'EML-002',
-          from: 'tracking@oceanlinklines.com',
-          subject: 'Vessel Arrival Notice & Discharge Confirmation - SH-2026-001',
-          date: '2026-10-08 14:15',
+          from: 'ops-tracking@bluewave.com',
+          subject: 'Notice of Vessel Delay: SH-2026-002 ETA Update',
+          date: '2026-10-10 10:15',
           type: 'Shipment Update',
           processed: false,
-          raw_body: `Notification for shipment ref: SH-2026-001
-
-We are pleased to inform you that container MSKU9920140 has completed discharge at Rotterdam Gateway.
-- Shipment Ref: SH-2026-001
-- Current Status: Delivered
-- Actual Delivered Date: 2026-10-08
-
-Thank you for shipping with OceanLink Lines.`,
+          raw_body: `Hello Ashwin,\n\nDue to severe berth congestion at Los Angeles Port, vessel Blue Horizon voyage 402 carrying shipment SH-2026-002 is delayed.\nNew Expected Arrival: 2026-10-19.\n\nSincerely,\nBlueWave Ops`,
           parsed_payload: {
-            shipment_id: 'SH-2026-001',
-            carrier: 'OceanLink Lines',
-            new_status: 'Delivered',
-            delivered_date: '2026-10-08'
+            shipment_id: 'SH-2026-002',
+            new_eta: '2026-10-19',
+            status: 'Delayed',
+            reason: 'Berth congestion at Los Angeles Port'
           }
         },
         {
@@ -390,92 +338,418 @@ Thank you for shipping with OceanLink Lines.`,
     };
   }
 
-  // Users
-  getUsers() { return this.db.users; }
-  findUserByEmail(email: string) {
-    return this.db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  public async autoSeedMongoIfEmpty(): Promise<void> {
+    if (!isMongoActive()) return;
+
+    try {
+      const usersCol = getUsersCollection();
+      const ratesCol = getRatesCollection();
+      const shipmentsCol = getShipmentsCollection();
+      const emailsCol = getEmailsCollection();
+      const activityCol = getActivityCollection();
+
+      if (!usersCol || !ratesCol || !shipmentsCol || !emailsCol || !activityCol) return;
+
+      const userCount = await usersCol.countDocuments();
+      if (userCount === 0) {
+        console.log('[MongoDB] Seeding initial data from JSON store into MongoDB...');
+        const sourceData = this.fileDb.users.length ? this.fileDb : this.getDefaultData();
+
+        if (sourceData.users.length) {
+          await usersCol.insertMany(sourceData.users as any);
+        }
+        if (sourceData.rates.length) {
+          await ratesCol.insertMany(sourceData.rates as any);
+        }
+        if (sourceData.shipments.length) {
+          await shipmentsCol.insertMany(sourceData.shipments as any);
+        }
+        if (sourceData.emails.length) {
+          await emailsCol.insertMany(sourceData.emails as any);
+        }
+        if (sourceData.activityUpdates.length) {
+          await activityCol.insertMany(sourceData.activityUpdates as any);
+        }
+        console.log('[MongoDB] Initial migration & seed into MongoDB completed successfully.');
+      }
+    } catch (err: any) {
+      console.error('[MongoDB] Auto-seed note:', err.message);
+    }
   }
-  addUser(user: UserRecord) {
-    this.db.users.push(user);
-    this.save();
+
+  // Explicit Migration Action
+  public async migrateJsonToMongo(): Promise<{ success: boolean; message: string; counts?: any }> {
+    if (!isMongoActive()) {
+      const connected = await connectMongo();
+      if (!connected) {
+        return {
+          success: false,
+          message: `Cannot migrate: MongoDB is not connected (${getMongoError() || 'Check MONGODB_URI'})`
+        };
+      }
+    }
+
+    try {
+      const usersCol = getUsersCollection()!;
+      const ratesCol = getRatesCollection()!;
+      const shipmentsCol = getShipmentsCollection()!;
+      const emailsCol = getEmailsCollection()!;
+      const actCol = getActivityCollection()!;
+
+      const json = this.loadFromFile();
+
+      // Upsert Users
+      for (const user of json.users) {
+        await usersCol.updateOne({ email: user.email.toLowerCase() }, { $set: user }, { upsert: true });
+      }
+
+      // Upsert Rates
+      for (const rate of json.rates) {
+        await ratesCol.updateOne(
+          {
+            carrier: rate.carrier,
+            origin_port: rate.origin_port,
+            destination_port: rate.destination_port,
+            container_type: rate.container_type
+          },
+          { $set: rate },
+          { upsert: true }
+        );
+      }
+
+      // Upsert Shipments
+      for (const ship of json.shipments) {
+        await shipmentsCol.updateOne({ shipment_id: ship.shipment_id }, { $set: ship }, { upsert: true });
+      }
+
+      // Upsert Emails
+      for (const eml of json.emails) {
+        await emailsCol.updateOne({ id: eml.id }, { $set: eml }, { upsert: true });
+      }
+
+      // Upsert Activity Updates
+      for (const act of json.activityUpdates) {
+        await actCol.updateOne({ id: act.id }, { $set: act }, { upsert: true });
+      }
+
+      const counts = {
+        users: await usersCol.countDocuments(),
+        rates: await ratesCol.countDocuments(),
+        shipments: await shipmentsCol.countDocuments(),
+        emails: await emailsCol.countDocuments(),
+        activityUpdates: await actCol.countDocuments()
+      };
+
+      return {
+        success: true,
+        message: 'Successfully migrated all records from JSON to MongoDB',
+        counts
+      };
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  }
+
+  // Database Status
+  public async getStatus() {
+    const mongoReady = isMongoActive();
+    let stats = null;
+
+    if (mongoReady) {
+      try {
+        const usersCol = getUsersCollection();
+        const ratesCol = getRatesCollection();
+        const shipmentsCol = getShipmentsCollection();
+        const emailsCol = getEmailsCollection();
+
+        stats = {
+          users: await usersCol?.countDocuments() || 0,
+          rates: await ratesCol?.countDocuments() || 0,
+          shipments: await shipmentsCol?.countDocuments() || 0,
+          emails: await emailsCol?.countDocuments() || 0
+        };
+      } catch {
+        // fallback
+      }
+    } else {
+      stats = {
+        users: this.fileDb.users.length,
+        rates: this.fileDb.rates.length,
+        shipments: this.fileDb.shipments.length,
+        emails: this.fileDb.emails.length
+      };
+    }
+
+    return {
+      activeEngine: mongoReady ? 'MongoDB' : 'JSON File Store (Fallback)',
+      isMongoConnected: mongoReady,
+      mongoDatabase: DB_NAME,
+      mongoUriConfigured: Boolean(process.env.MONGODB_URI),
+      configuredUriMasked: process.env.MONGODB_URI
+        ? process.env.MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')
+        : 'mongodb://127.0.0.1:27017/bluspark_logistics (default)',
+      connectionError: getMongoError(),
+      stats
+    };
+  }
+
+  // --- Users ---
+  public async getUsers(): Promise<UserRecord[]> {
+    if (isMongoActive()) {
+      const col = getUsersCollection();
+      if (col) {
+        const docs = await col.find({}, { projection: { _id: 0 } }).toArray();
+        return docs as UserRecord[];
+      }
+    }
+    return this.fileDb.users;
+  }
+
+  public async findUserByEmail(email: string): Promise<UserRecord | null> {
+    const cleanEmail = email.trim().toLowerCase();
+    if (isMongoActive()) {
+      const col = getUsersCollection();
+      if (col) {
+        const doc = await col.findOne({ email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } }, { projection: { _id: 0 } });
+        return (doc as UserRecord) || null;
+      }
+    }
+    const found = this.fileDb.users.find(u => u.email.toLowerCase() === cleanEmail);
+    return found || null;
+  }
+
+  public async addUser(user: UserRecord): Promise<UserRecord> {
+    if (isMongoActive()) {
+      const col = getUsersCollection();
+      if (col) {
+        await col.updateOne({ email: user.email.toLowerCase() }, { $set: user }, { upsert: true });
+        return user;
+      }
+    }
+    this.fileDb.users.push(user);
+    this.saveToFile();
     return user;
   }
 
-  // Rates
-  getRates() { return this.db.rates; }
-  upsertRate(rate: CarrierRateRecord) {
-    const idx = this.db.rates.findIndex(
+  // --- Rates ---
+  public async getRates(): Promise<CarrierRateRecord[]> {
+    if (isMongoActive()) {
+      const col = getRatesCollection();
+      if (col) {
+        const docs = await col.find({}, { projection: { _id: 0 } }).toArray();
+        return docs as CarrierRateRecord[];
+      }
+    }
+    return this.fileDb.rates;
+  }
+
+  public async upsertRate(rate: CarrierRateRecord): Promise<CarrierRateRecord> {
+    if (isMongoActive()) {
+      const col = getRatesCollection();
+      if (col) {
+        await col.updateOne(
+          {
+            carrier: { $regex: new RegExp(`^${rate.carrier.trim()}$`, 'i') },
+            origin_port: { $regex: new RegExp(`^${rate.origin_port.trim()}$`, 'i') },
+            destination_port: { $regex: new RegExp(`^${rate.destination_port.trim()}$`, 'i') },
+            container_type: rate.container_type
+          },
+          { $set: rate },
+          { upsert: true }
+        );
+        return rate;
+      }
+    }
+
+    const idx = this.fileDb.rates.findIndex(
       r => r.carrier.toLowerCase() === rate.carrier.toLowerCase() &&
            r.origin_port.toLowerCase() === rate.origin_port.toLowerCase() &&
            r.destination_port.toLowerCase() === rate.destination_port.toLowerCase() &&
            r.container_type === rate.container_type
     );
     if (idx >= 0) {
-      this.db.rates[idx] = { ...this.db.rates[idx], ...rate, updated_at: rate.updated_at || new Date().toISOString().split('T')[0] };
+      this.fileDb.rates[idx] = { ...this.fileDb.rates[idx], ...rate, updated_at: rate.updated_at || new Date().toISOString().split('T')[0] };
     } else {
-      this.db.rates.unshift(rate);
+      this.fileDb.rates.unshift(rate);
     }
-    this.save();
+    this.saveToFile();
     return rate;
   }
-  resetRates(defaultRates?: CarrierRateRecord[]) {
-    this.db.rates = defaultRates ? [...defaultRates] : this.getDefaultData().rates;
-    this.save();
-    return this.db.rates;
+
+  public async resetRates(defaultRates?: CarrierRateRecord[]): Promise<CarrierRateRecord[]> {
+    const list = defaultRates ? [...defaultRates] : this.getDefaultData().rates;
+    if (isMongoActive()) {
+      const col = getRatesCollection();
+      if (col) {
+        await col.deleteMany({});
+        if (list.length) await col.insertMany(list as any);
+        return list;
+      }
+    }
+    this.fileDb.rates = list;
+    this.saveToFile();
+    return this.fileDb.rates;
   }
 
-  // Shipments
-  getShipments() { return this.db.shipments; }
-  addShipment(shipment: ShipmentRecord) {
-    this.db.shipments.unshift(shipment);
-    this.save();
+  // --- Shipments ---
+  public async getShipments(): Promise<ShipmentRecord[]> {
+    if (isMongoActive()) {
+      const col = getShipmentsCollection();
+      if (col) {
+        const docs = await col.find({}, { projection: { _id: 0 } }).toArray();
+        return docs as ShipmentRecord[];
+      }
+    }
+    return this.fileDb.shipments;
+  }
+
+  public async addShipment(shipment: ShipmentRecord): Promise<ShipmentRecord> {
+    if (isMongoActive()) {
+      const col = getShipmentsCollection();
+      if (col) {
+        await col.updateOne({ shipment_id: shipment.shipment_id }, { $set: shipment }, { upsert: true });
+        return shipment;
+      }
+    }
+    this.fileDb.shipments.unshift(shipment);
+    this.saveToFile();
     return shipment;
   }
-  updateShipmentStatus(shipmentId: string, status: 'In Transit' | 'Delivered' | 'Delayed', deliveredDate?: string | null) {
-    const found = this.db.shipments.find(s => s.shipment_id === shipmentId || s.id === shipmentId);
+
+  public async updateShipmentStatus(
+    shipmentId: string,
+    status: 'In Transit' | 'Delivered' | 'Delayed',
+    deliveredDate?: string | null
+  ): Promise<ShipmentRecord | null> {
+    const delivered = status === 'Delivered' ? (deliveredDate || new Date().toISOString().split('T')[0]) : undefined;
+
+    if (isMongoActive()) {
+      const col = getShipmentsCollection();
+      if (col) {
+        const updateDoc: any = { status };
+        if (delivered) updateDoc.delivered_date = delivered;
+
+        const res = await col.findOneAndUpdate(
+          { $or: [{ shipment_id: shipmentId }, { id: shipmentId }] },
+          { $set: updateDoc },
+          { returnDocument: 'after', projection: { _id: 0 } }
+        );
+        return (res as ShipmentRecord) || null;
+      }
+    }
+
+    const found = this.fileDb.shipments.find(s => s.shipment_id === shipmentId || s.id === shipmentId);
     if (found) {
       found.status = status;
       if (status === 'Delivered') {
-        found.delivered_date = deliveredDate || new Date().toISOString().split('T')[0];
+        found.delivered_date = delivered || null;
       }
-      this.save();
+      this.saveToFile();
       return found;
     }
     return null;
   }
-  resetShipments(defaultShipments?: ShipmentRecord[]) {
-    this.db.shipments = defaultShipments ? [...defaultShipments] : this.getDefaultData().shipments;
-    this.save();
-    return this.db.shipments;
+
+  public async resetShipments(defaultShipments?: ShipmentRecord[]): Promise<ShipmentRecord[]> {
+    const list = defaultShipments ? [...defaultShipments] : this.getDefaultData().shipments;
+    if (isMongoActive()) {
+      const col = getShipmentsCollection();
+      if (col) {
+        await col.deleteMany({});
+        if (list.length) await col.insertMany(list as any);
+        return list;
+      }
+    }
+    this.fileDb.shipments = list;
+    this.saveToFile();
+    return this.fileDb.shipments;
   }
 
-  // Emails
-  getEmails() { return this.db.emails; }
-  markEmailProcessed(id: string, appliedAction?: string) {
-    const email = this.db.emails.find(e => e.id === id);
+  // --- Emails ---
+  public async getEmails(): Promise<EmailRecordItem[]> {
+    if (isMongoActive()) {
+      const col = getEmailsCollection();
+      if (col) {
+        const docs = await col.find({}, { projection: { _id: 0 } }).toArray();
+        return docs as EmailRecordItem[];
+      }
+    }
+    return this.fileDb.emails;
+  }
+
+  public async markEmailProcessed(id: string, appliedAction?: string): Promise<EmailRecordItem | null> {
+    if (isMongoActive()) {
+      const col = getEmailsCollection();
+      if (col) {
+        const updateDoc: any = { processed: true };
+        if (appliedAction) updateDoc.applied_action = appliedAction;
+
+        const res = await col.findOneAndUpdate(
+          { id },
+          { $set: updateDoc },
+          { returnDocument: 'after', projection: { _id: 0 } }
+        );
+        return (res as EmailRecordItem) || null;
+      }
+    }
+
+    const email = this.fileDb.emails.find(e => e.id === id);
     if (email) {
       email.processed = true;
       if (appliedAction) email.applied_action = appliedAction;
-      this.save();
+      this.saveToFile();
     }
-    return email;
-  }
-  resetEmails() {
-    this.db.emails = this.getDefaultData().emails;
-    this.save();
-    return this.db.emails;
+    return email || null;
   }
 
-  // Activity Updates
-  getActivityUpdates() { return this.db.activityUpdates; }
-  addActivityUpdate(activity: ActivityUpdateRecord) {
-    this.db.activityUpdates.unshift(activity);
-    if (this.db.activityUpdates.length > 50) {
-      this.db.activityUpdates = this.db.activityUpdates.slice(0, 50);
+  public async resetEmails(): Promise<EmailRecordItem[]> {
+    const list = this.getDefaultData().emails;
+    if (isMongoActive()) {
+      const col = getEmailsCollection();
+      if (col) {
+        await col.deleteMany({});
+        if (list.length) await col.insertMany(list as any);
+        return list;
+      }
     }
-    this.save();
+    this.fileDb.emails = list;
+    this.saveToFile();
+    return this.fileDb.emails;
+  }
+
+  // --- Activity Updates ---
+  public async getActivityUpdates(): Promise<ActivityUpdateRecord[]> {
+    if (isMongoActive()) {
+      const col = getActivityCollection();
+      if (col) {
+        const docs = await col.find({}, { projection: { _id: 0 } }).sort({ timestamp: -1 }).limit(50).toArray();
+        return docs as ActivityUpdateRecord[];
+      }
+    }
+    return this.fileDb.activityUpdates;
+  }
+
+  public async addActivityUpdate(activity: ActivityUpdateRecord): Promise<ActivityUpdateRecord> {
+    if (isMongoActive()) {
+      const col = getActivityCollection();
+      if (col) {
+        await col.insertOne(activity as any);
+        return activity;
+      }
+    }
+
+    this.fileDb.activityUpdates.unshift(activity);
+    if (this.fileDb.activityUpdates.length > 50) {
+      this.fileDb.activityUpdates = this.fileDb.activityUpdates.slice(0, 50);
+    }
+    this.saveToFile();
     return activity;
   }
 }
 
-export const db = new JsonDatabase();
+export const db = new LogisticsDatabase();
+
+// Initialize in background
+db.initialize().catch((err) => {
+  console.warn('[LogisticsDatabase] Initialization error:', err.message);
+});

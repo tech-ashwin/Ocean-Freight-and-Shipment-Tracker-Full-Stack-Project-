@@ -2,9 +2,20 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db.js';
-import { JWT_SECRET, authMiddleware, AuthRequest } from '../middleware.js';
+import { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, authMiddleware, AuthRequest } from '../middleware.js';
 
 export const authRouter = Router();
+
+function generateAuthTokens(user: { id: string; name: string; email: string; role: 'Admin' | 'User' }) {
+  const payload = { id: user.id, name: user.name, email: user.email, role: user.role };
+  const accessToken = jwt.sign(payload, JWT_ACCESS_SECRET, { expiresIn: '1d' });
+  const refreshToken = jwt.sign({ id: user.id, email: user.email }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
+  return {
+    accessToken,
+    refreshToken,
+    token: accessToken // Backward-compatible alias
+  };
+}
 
 // POST /api/auth/login
 authRouter.post('/login', async (req: Request, res: Response) => {
@@ -15,7 +26,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     }
 
     const email = String(username).trim().toLowerCase();
-    const existing = db.findUserByEmail(email);
+    const existing = await db.findUserByEmail(email);
 
     if (existing) {
       // Validate password
@@ -24,15 +35,16 @@ authRouter.post('/login', async (req: Request, res: Response) => {
         return res.status(401).json({ success: false, message: 'Invalid credentials. Please verify your password.' });
       }
 
-      const token = jwt.sign(
-        { id: existing.id, name: existing.name, email: existing.email, role: existing.role },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-      );
+      const tokens = generateAuthTokens({
+        id: existing.id,
+        name: existing.name,
+        email: existing.email,
+        role: existing.role
+      });
 
       return res.json({
         success: true,
-        token,
+        ...tokens,
         user: {
           name: existing.name,
           email: existing.email,
@@ -41,13 +53,13 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // Default demo fallback: Allow signing in with ashwingupta2027@gmail.com or quick demo
+    // Default demo fallback: Create user if first time logging in
     const displayName = email.split('@')[0] || 'Freight Specialist';
     const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password || 'password123', salt);
 
-    const newUser = db.addUser({
+    const newUser = await db.addUser({
       id: `user_${Date.now()}`,
       name: capitalizedName,
       email,
@@ -56,15 +68,16 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       createdAt: new Date().toISOString()
     });
 
-    const token = jwt.sign(
-      { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const tokens = generateAuthTokens({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role
+    });
 
     return res.json({
       success: true,
-      token,
+      ...tokens,
       user: {
         name: newUser.name,
         email: newUser.email,
@@ -85,7 +98,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
-    const existing = db.findUserByEmail(cleanEmail);
+    const existing = await db.findUserByEmail(cleanEmail);
     if (existing) {
       return res.status(409).json({ success: false, message: 'An account with this email already exists' });
     }
@@ -93,7 +106,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const newUser = db.addUser({
+    const newUser = await db.addUser({
       id: `user_${Date.now()}`,
       name: (name || cleanEmail.split('@')[0]).trim(),
       email: cleanEmail,
@@ -102,15 +115,16 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       createdAt: new Date().toISOString()
     });
 
-    const token = jwt.sign(
-      { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const tokens = generateAuthTokens({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role
+    });
 
     return res.json({
       success: true,
-      token,
+      ...tokens,
       user: {
         name: newUser.name,
         email: newUser.email,
@@ -119,6 +133,47 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message || 'Registration failed' });
+  }
+});
+
+// POST /api/auth/refresh - Refresh Access Token using Refresh Token
+authRouter.post('/refresh', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      return res.status(400).json({ success: false, message: 'Refresh token is required' });
+    }
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token' });
+    }
+
+    const user = await db.findUserByEmail(decoded.email);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found' });
+    }
+
+    const tokens = generateAuthTokens({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+
+    return res.json({
+      success: true,
+      ...tokens,
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message || 'Token refresh failed' });
   }
 });
 

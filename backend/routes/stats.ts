@@ -4,12 +4,12 @@ import { db } from '../db.js';
 export const statsRouter = Router();
 
 // GET /api/stats - Dashboard analytics and metrics
-statsRouter.get('/', (_req: Request, res: Response) => {
+statsRouter.get('/', async (_req: Request, res: Response) => {
   try {
-    const rates = db.getRates();
-    const shipments = db.getShipments();
-    const emails = db.getEmails();
-    const activityUpdates = db.getActivityUpdates();
+    const rates = await db.getRates();
+    const shipments = await db.getShipments();
+    const emails = await db.getEmails();
+    const activityUpdates = await db.getActivityUpdates();
 
     const today = new Date('2026-10-10T00:00:00');
     let delayedCount = 0;

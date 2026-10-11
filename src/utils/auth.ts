@@ -1,10 +1,15 @@
 import { CarrierRate, Shipment, UserAccount } from '../types';
 
 const TOKEN_KEY = 'bluspark_auth_token';
+const REFRESH_TOKEN_KEY = 'bluspark_auth_refresh_token';
 const USER_KEY = 'bluspark_auth_user';
 
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getStoredRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 export function getStoredUser(): UserAccount | null {
@@ -16,25 +21,65 @@ export function getStoredUser(): UserAccount | null {
   }
 }
 
-export function setStoredAuth(token: string, user: UserAccount) {
+export function setStoredAuth(token: string, user: UserAccount, refreshToken?: string) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  if (refreshToken) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
 }
 
 export function clearStoredAuth() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getStoredToken();
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+export async function refreshTokenSession(): Promise<string | null> {
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) return null;
+
+  try {
+    const res = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success && (data.accessToken || data.token)) {
+      const newAccess = data.accessToken || data.token;
+      setStoredAuth(newAccess, data.user, data.refreshToken || refreshToken);
+      return newAccess;
+    }
+  } catch (err) {
+    console.warn('Session refresh failed:', err);
   }
-  return headers;
+
+  clearStoredAuth();
+  return null;
+}
+
+async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  let token = getStoredToken();
+  const headers = new Headers(options.headers || {});
+  headers.set('Content-Type', 'application/json');
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  let res = await fetch(url, { ...options, headers });
+
+  // If unauthorized and we have a refresh token, attempt transparent token refresh
+  if (res.status === 401 && getStoredRefreshToken()) {
+    const newToken = await refreshTokenSession();
+    if (newToken) {
+      headers.set('Authorization', `Bearer ${newToken}`);
+      res = await fetch(url, { ...options, headers });
+    }
+  }
+
+  return res;
 }
 
 // ---------------- AUTH API ----------------
@@ -51,8 +96,9 @@ export async function loginUser(emailOrUsername: string, password: string): Prom
     throw new Error(data.message || 'Authentication failed');
   }
 
-  setStoredAuth(data.token, data.user);
-  return { token: data.token, user: data.user };
+  const token = data.accessToken || data.token;
+  setStoredAuth(token, data.user, data.refreshToken);
+  return { token, user: data.user };
 }
 
 export async function registerUser(name: string, email: string, password: string): Promise<{ token: string; user: UserAccount }> {
@@ -67,8 +113,9 @@ export async function registerUser(name: string, email: string, password: string
     throw new Error(data.message || 'Registration failed');
   }
 
-  setStoredAuth(data.token, data.user);
-  return { token: data.token, user: data.user };
+  const token = data.accessToken || data.token;
+  setStoredAuth(token, data.user, data.refreshToken);
+  return { token, user: data.user };
 }
 
 export async function forgotPassword(email: string): Promise<string> {
@@ -101,9 +148,8 @@ export async function fetchRatesFromBackend(): Promise<CarrierRate[] | null> {
 
 export async function syncRatesToBackend(rates: CarrierRate[]): Promise<boolean> {
   try {
-    const res = await fetch('/api/rates/bulk', {
+    const res = await authenticatedFetch('/api/rates/bulk', {
       method: 'POST',
-      headers: getAuthHeaders(),
       body: JSON.stringify({ rates }),
     });
     return res.ok;
@@ -127,9 +173,8 @@ export async function fetchShipmentsFromBackend(): Promise<Shipment[] | null> {
 
 export async function createShipmentOnBackend(shipment: Shipment): Promise<boolean> {
   try {
-    const res = await fetch('/api/shipments', {
+    const res = await authenticatedFetch('/api/shipments', {
       method: 'POST',
-      headers: getAuthHeaders(),
       body: JSON.stringify(shipment),
     });
     return res.ok;
@@ -144,9 +189,8 @@ export async function updateShipmentStatusOnBackend(
   deliveredDate?: string | null
 ): Promise<boolean> {
   try {
-    const res = await fetch(`/api/shipments/${encodeURIComponent(shipmentId)}/status`, {
+    const res = await authenticatedFetch(`/api/shipments/${encodeURIComponent(shipmentId)}/status`, {
       method: 'PATCH',
-      headers: getAuthHeaders(),
       body: JSON.stringify({ status, delivered_date: deliveredDate }),
     });
     return res.ok;
@@ -163,9 +207,8 @@ export async function batchIngestEmailsToBackend(payload: {
   newShipmentStatuses: any[];
 }): Promise<boolean> {
   try {
-    const res = await fetch('/api/emails/batch-process', {
+    const res = await authenticatedFetch('/api/emails/batch-process', {
       method: 'POST',
-      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
     return res.ok;

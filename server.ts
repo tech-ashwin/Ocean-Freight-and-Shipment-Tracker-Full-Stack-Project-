@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import http from 'http';
 import { createBackendApp } from './backend/app.js';
 import { createServer as createViteServer } from 'vite';
