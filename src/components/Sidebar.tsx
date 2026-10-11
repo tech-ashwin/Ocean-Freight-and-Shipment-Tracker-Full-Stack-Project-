@@ -7,7 +7,6 @@ import {
   Mail,
   LogOut,
   Layers,
-  Presentation,
 } from 'lucide-react';
 import { ActiveNav } from '../types';
 
@@ -156,26 +155,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </button>
 
-        {/* Pitch Deck / Judges 3-Slide PPT */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={() => handleItemClick('presentation')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-all text-left ${
-              activeNav === 'presentation'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-md'
-                : 'text-blue-300 bg-blue-950/40 border border-blue-800/40 hover:bg-blue-900/50 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Presentation className="w-4 h-4 shrink-0 text-blue-400" />
-              <span>Judges Pitch Deck</span>
-            </div>
-            <span className="text-[9px] uppercase tracking-wider bg-blue-500/20 text-blue-200 border border-blue-400/30 font-bold px-1.5 py-0.5 rounded">
-              3 Slides
-            </span>
-          </button>
-        </div>
       </nav>
 
       {/* Sidebar Bottom Links */}

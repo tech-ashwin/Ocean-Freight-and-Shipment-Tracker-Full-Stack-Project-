@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Menu, Presentation } from 'lucide-react';
+import { User, Menu } from 'lucide-react';
 import { UserAccount } from '../types';
 
 interface TopBarProps {
@@ -8,7 +8,7 @@ interface TopBarProps {
   onOpenPitchDeck?: () => void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ user, onToggleMobileMenu, onOpenPitchDeck }) => {
+export const TopBar: React.FC<TopBarProps> = ({ user, onToggleMobileMenu }) => {
   return (
     <header
       className="h-14 bg-[#0d1b2e] border-b border-slate-800/60 px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-xs select-none"
@@ -31,19 +31,6 @@ export const TopBar: React.FC<TopBarProps> = ({ user, onToggleMobileMenu, onOpen
       </div>
 
       <div className="flex items-center gap-2.5 sm:gap-3">
-        {/* Judges Presentation / Pitch Deck Button */}
-        {onOpenPitchDeck && (
-          <button
-            type="button"
-            onClick={onOpenPitchDeck}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border border-blue-500/40 text-blue-200 hover:text-white hover:border-blue-400 hover:from-blue-600/50 hover:to-indigo-600/50 transition shadow-xs text-xs font-semibold cursor-pointer"
-            title="Open 3-Page PPT for Judges Presentation"
-          >
-            <Presentation className="w-3.5 h-3.5 text-blue-400" />
-            <span className="hidden sm:inline">Judges Pitch Deck (3-Page PPT)</span>
-            <span className="sm:hidden">PPT</span>
-          </button>
-        )}
 
         {/* User Profile Indicator */}
         <div className="flex items-center gap-2">
