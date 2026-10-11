@@ -91,7 +91,7 @@ export const PresentationPitchDeckView: React.FC<PresentationPitchDeckViewProps>
               <span className="text-xs text-slate-400">Slide {currentSlide} of 3</span>
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-              BLUSPARK Logistics Intelligence Platform
+              BLUSPARK • Smart Shipment Saves Time !
             </h2>
           </div>
         </div>

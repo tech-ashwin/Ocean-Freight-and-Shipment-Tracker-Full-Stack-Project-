@@ -61,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-bold tracking-wider text-white">BLUSPARK</span>
-              <span className="text-[9px] uppercase tracking-widest text-slate-400 font-medium">Logistics Intelligence</span>
+              <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Smart Shipment Saves Time !</span>
             </div>
           </div>
 
