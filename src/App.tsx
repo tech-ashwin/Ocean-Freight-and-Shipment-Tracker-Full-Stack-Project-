@@ -18,20 +18,16 @@ import {
 } from './data/initialData';
 import { applyEmailUpdates } from './utils/parser';
 import {
-  loginApi,
-  logoutApi,
   getStoredToken,
   getStoredUser,
-  createShipmentApi,
-  updateShipmentStatusApi,
-  bulkIngestRatesApi,
-  triggerEmailParserApi,
-  fetchShipmentsApi,
-  fetchRatesApi,
-  fetchEmailsApi,
-  fetchActivitiesApi,
-  resetSystemDataApi,
-} from './utils/api';
+  clearStoredAuth,
+  fetchRatesFromBackend,
+  fetchShipmentsFromBackend,
+  syncRatesToBackend,
+  createShipmentOnBackend,
+  updateShipmentStatusOnBackend,
+  batchIngestEmailsToBackend,
+} from './utils/auth';
 
 // Components
 import { Sidebar } from './components/Sidebar';
@@ -99,45 +95,35 @@ export default function App() {
   const [isAddShipmentModalOpen, setIsAddShipmentModalOpen] = useState(false);
   const [auditShipmentId, setAuditShipmentId] = useState('SH001');
 
-  // Fetch live canonical data from backend database when authenticated
+  // Initial fetch from backend if available
   useEffect(() => {
     if (!isAuthenticated) return;
     let isMounted = true;
-
-    async function initData() {
+    async function loadBackendData() {
       try {
-        const [backendShipments, backendRates, backendEmails, backendActivities] = await Promise.all([
-          fetchShipmentsApi(),
-          fetchRatesApi(),
-          fetchEmailsApi(),
-          fetchActivitiesApi(),
+        const [backendRates, backendShipments] = await Promise.all([
+          fetchRatesFromBackend(),
+          fetchShipmentsFromBackend(),
         ]);
-
-        if (!isMounted) return;
-        if (backendShipments && backendShipments.length > 0) {
-          setShipments(backendShipments);
+        if (isMounted) {
+          if (backendRates && backendRates.length > 0) {
+            setRates(backendRates);
+          }
+          if (backendShipments && backendShipments.length > 0) {
+            setShipments(backendShipments);
+          }
         }
-        if (backendRates?.rates && backendRates.rates.length > 0) {
-          setRates(backendRates.rates);
-        }
-        if (backendEmails && backendEmails.length > 0) {
-          setEmails(backendEmails);
-        }
-        if (backendActivities && backendActivities.length > 0) {
-          setActivityUpdates(backendActivities);
-        }
-      } catch (err) {
-        console.warn('Initial backend sync:', err);
+      } catch (e) {
+        console.warn('Backend data load fallback to local state:', e);
       }
     }
-
-    initData();
+    loadBackendData();
     return () => {
       isMounted = false;
     };
   }, [isAuthenticated]);
 
-  // Sync to local storage for offline caching
+  // Sync to local storage for offline state persistence
   useEffect(() => {
     localStorage.setItem('bluspark_rates', JSON.stringify(rates));
   }, [rates]);
@@ -161,8 +147,8 @@ export default function App() {
     setActiveNav('dashboard');
   };
 
-  const handleLogout = async () => {
-    await logoutApi();
+  const handleLogout = () => {
+    clearStoredAuth();
     setIsAuthenticated(false);
   };
 
@@ -170,58 +156,34 @@ export default function App() {
     setIsAddShipmentModalOpen(true);
   };
 
-  const handleImportRates = async (newRates: CarrierRate[]) => {
-    // Bulk ingest into backend
-    await bulkIngestRatesApi(newRates);
-    const fresh = await fetchRatesApi();
-    if (fresh?.rates) {
-      setRates(fresh.rates);
-    } else {
-      setRates((prev) => [...newRates, ...prev]);
-    }
+  const handleImportRates = (newRates: CarrierRate[]) => {
+    setRates((prev) => [...newRates, ...prev]);
+    syncRatesToBackend(newRates).catch(console.error);
   };
 
   // Shipment Handlers
-  const handleAddShipment = async (newShipment: Shipment) => {
-    // Create via backend
-    const res = await createShipmentApi(newShipment);
-    if (res.success && res.data) {
-      setShipments((prev) => [res.data!, ...prev.filter((s) => s.id !== res.data!.id && s.shipment_id !== res.data!.shipment_id)]);
-    } else {
-      setShipments((prev) => [newShipment, ...prev]);
-    }
-
-    // Refresh activities from backend
-    const freshActs = await fetchActivitiesApi();
-    if (freshActs) {
-      setActivityUpdates(freshActs);
-    } else {
-      setActivityUpdates((prev) => [
-        {
-          id: `ACT_${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          timeAgo: 'Just now',
-          type: 'shipment',
-          title: `New shipment created: ${newShipment.shipment_id}`,
-          subtitle: `${newShipment.carrier} | ${newShipment.origin_port} → ${newShipment.destination_port}`,
-          badgeColor: 'blue',
-        },
-        ...prev,
-      ]);
-    }
+  const handleAddShipment = (newShipment: Shipment) => {
+    setShipments((prev) => [newShipment, ...prev]);
+    createShipmentOnBackend(newShipment).catch(console.error);
+    setActivityUpdates((prev) => [
+      {
+        id: `ACT_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        timeAgo: 'Just now',
+        type: 'shipment',
+        title: `New shipment created: ${newShipment.shipment_id}`,
+        subtitle: `${newShipment.carrier} | ${newShipment.origin_port} → ${newShipment.destination_port}`,
+        badgeColor: 'blue',
+      },
+      ...prev,
+    ]);
   };
 
-  const handleUpdateShipmentStatus = async (
+  const handleUpdateShipmentStatus = (
     id: string,
     newStatus: ShipmentStatus,
     deliveredDate?: string
   ) => {
-    // Call backend endpoint
-    await updateShipmentStatusApi(id, {
-      status: newStatus,
-      delivered_date: deliveredDate,
-    });
-
     setShipments((prev) =>
       prev.map((s) => {
         if (s.id === id) {
@@ -235,8 +197,22 @@ export default function App() {
       })
     );
 
-    const freshActs = await fetchActivitiesApi();
-    if (freshActs) setActivityUpdates(freshActs);
+    const target = shipments.find((s) => s.id === id);
+    if (target) {
+      updateShipmentStatusOnBackend(target.shipment_id || id, newStatus, deliveredDate).catch(console.error);
+      setActivityUpdates((prev) => [
+        {
+          id: `ACT_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          timeAgo: 'Just now',
+          type: newStatus === 'Delayed' ? 'delayed' : 'shipment',
+          title: `Shipment ${target.shipment_id} marked as ${newStatus}`,
+          subtitle: `${target.carrier} | ${target.origin_port} → ${target.destination_port}`,
+          badgeColor: newStatus === 'Delayed' ? 'rose' : 'blue',
+        },
+        ...prev,
+      ]);
+    }
   };
 
   const handleAuditInvoice = (shipmentId: string) => {
@@ -245,33 +221,50 @@ export default function App() {
   };
 
   // Email processing batch execution
-  const handleProcessAllEmails = async () => {
-    // Trigger backend endpoint
-    await triggerEmailParserApi();
+  const handleProcessAllEmails = () => {
+    let currRates = [...rates];
+    let currShipments = [...shipments];
+    const newUpdates: ActivityUpdate[] = [];
 
-    // Re-sync with backend
-    const [freshShipments, freshRates, freshEmails, freshActs] = await Promise.all([
-      fetchShipmentsApi(),
-      fetchRatesApi(),
-      fetchEmailsApi(),
-      fetchActivitiesApi(),
-    ]);
+    const updatedEmails = emails.map((email) => {
+      if (email.processed || email.type === 'Irrelevant') return email;
+      const { updatedRates, updatedShipments, newActivity } = applyEmailUpdates(
+        email,
+        currRates,
+        currShipments
+      );
+      currRates = updatedRates;
+      currShipments = updatedShipments;
+      if (newActivity) newUpdates.push(newActivity);
+      return { ...email, processed: true };
+    });
 
-    if (freshShipments) setShipments(freshShipments);
-    if (freshRates?.rates) setRates(freshRates.rates);
-    if (freshEmails) setEmails(freshEmails);
-    if (freshActs) setActivityUpdates(freshActs);
+    setEmails(updatedEmails);
+    setRates(currRates);
+    setShipments(currShipments);
+    if (newUpdates.length > 0) {
+      setActivityUpdates((prev) => [...newUpdates, ...prev]);
+    }
+
+    // Persist new rates and activities to backend
+    batchIngestEmailsToBackend({
+      updates: newUpdates,
+      newRates: currRates,
+      newShipmentStatuses: currShipments.map(s => ({
+        shipment_id: s.shipment_id,
+        status: s.status,
+        delivered_date: s.delivered_date
+      }))
+    }).catch(console.error);
   };
 
   // Reset to initial baseline
-  const handleResetRates = async () => {
-    await resetSystemDataApi();
+  const handleResetRates = () => {
     setRates(INITIAL_RATES);
     localStorage.removeItem('bluspark_rates');
   };
 
-  const handleResetShipments = async () => {
-    await resetSystemDataApi();
+  const handleResetShipments = () => {
     setShipments(INITIAL_SHIPMENTS);
     localStorage.removeItem('bluspark_shipments');
   };

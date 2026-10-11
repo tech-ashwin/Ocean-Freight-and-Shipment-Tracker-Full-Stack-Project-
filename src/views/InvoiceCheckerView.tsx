@@ -4,7 +4,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Shipment } from '../types';
-import { auditInvoiceApi } from '../utils/api';
 
 interface InvoiceCheckerViewProps {
   shipments: Shipment[];
@@ -92,7 +91,6 @@ export const InvoiceCheckerView: React.FC<InvoiceCheckerViewProps> = ({
     const c = parseFloat(contractedRate) || 0;
     const inv = parseFloat(invoiceAmount) || 0;
     runCheck(c, inv, currency);
-    auditInvoiceApi(c, inv, selectedShipmentId).catch(() => {});
   };
 
   const handleConvertClick = () => {

@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Download, Plus, CheckCircle, FileCheck, RefreshCw, FileSpreadsheet } from 'lucide-react';
 import { Shipment, ShipmentStatus } from '../types';
 import { formatDateDisplay, exportShipmentsToExcel } from '../utils/csvHelper';
-import { downloadExcelFromBackend } from '../utils/api';
 import { CURRENT_DATE_STRING } from '../data/initialData';
 
 interface ShipmentTrackerViewProps {
@@ -121,11 +120,8 @@ export const ShipmentTrackerView: React.FC<ShipmentTrackerViewProps> = ({
 
             <button
               type="button"
-              onClick={async () => {
-                const ok = await downloadExcelFromBackend();
-                if (!ok) {
-                  exportShipmentsToExcel(shipments);
-                }
+              onClick={() => {
+                exportShipmentsToExcel(shipments);
               }}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 sm:py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg sm:rounded transition shadow-xs cursor-pointer min-h-[40px] sm:min-h-0"
               title="Download fleet shipments in Microsoft Excel (.xlsx) format"

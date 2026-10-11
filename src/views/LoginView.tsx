@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { UserAccount } from '../types';
-import { loginApi, registerApi, forgotPasswordApi } from '../utils/api';
+import { loginUser, registerUser, forgotPassword } from '../utils/auth';
 
 interface LoginViewProps {
   onLogin: (user: UserAccount) => void;
@@ -66,7 +66,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         localStorage.removeItem('bluspark_remembered_user');
       }
 
-      const result = await loginApi(username.trim(), password);
+      const result = await loginUser(username.trim(), password);
       setSuccessMessage('Authentication verified! Redirecting to workspace...');
       setTimeout(() => {
         onLogin(result.user);
@@ -102,7 +102,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
     setIsSubmitting(true);
     try {
-      const result = await registerApi(fullName.trim(), registerEmail.trim(), registerPassword);
+      const result = await registerUser(fullName.trim(), registerEmail.trim(), registerPassword);
       setSuccessMessage('Account registered successfully! Launching workspace...');
       setTimeout(() => {
         onLogin(result.user);
@@ -120,7 +120,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     setPassword(pass);
     setErrorMessage(null);
     setIsSubmitting(true);
-    loginApi(email, pass)
+    loginUser(email, pass)
       .then((res) => {
         setSuccessMessage(`Signed in as ${res.user.name}!`);
         setTimeout(() => onLogin(res.user), 300);
@@ -136,8 +136,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     setIsForgotSubmitting(true);
     setForgotFeedback(null);
     try {
-      const res = await forgotPasswordApi(forgotEmail);
-      setForgotFeedback(`${res.message} (Demo password: ${res.hint || 'password123'})`);
+      const msg = await forgotPassword(forgotEmail);
+      setForgotFeedback(msg || 'Password reset instructions have been dispatched.');
     } catch (err: any) {
       setForgotFeedback(err.message || 'Unable to dispatch reset email.');
     } finally {
