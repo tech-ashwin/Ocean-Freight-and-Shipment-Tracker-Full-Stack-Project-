@@ -26,10 +26,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   // Form states
-  const [username, setUsername] = useState(() => {
-    return localStorage.getItem('bluspark_remembered_user') || 'ashwingupta2027@gmail.com';
-  });
-  const [password, setPassword] = useState('password123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
@@ -37,16 +35,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
   // UI state
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Forgot Password modal
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('ashwingupta2027@gmail.com');
+  const [forgotEmail, setForgotEmail] = useState('');
   const [forgotFeedback, setForgotFeedback] = useState<string | null>(null);
   const [isForgotSubmitting, setIsForgotSubmitting] = useState(false);
+
+  useEffect(() => {
+    localStorage.removeItem('bluspark_remembered_user');
+  }, []);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
