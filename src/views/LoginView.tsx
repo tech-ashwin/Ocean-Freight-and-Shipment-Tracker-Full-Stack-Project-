@@ -111,21 +111,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   };
 
 
-  const handleQuickLogin = (email: string, pass: string = 'password123') => {
-    setUsername(email);
-    setPassword(pass);
-    setErrorMessage(null);
-    setIsSubmitting(true);
-    loginUser(email, pass)
-      .then((res) => {
-        setSuccessMessage(`Signed in as ${res.user.name}!`);
-        setTimeout(() => onLogin(res.user), 300);
-      })
-      .catch((err) => {
-        setErrorMessage(err.message || 'Quick login failed');
-        setIsSubmitting(false);
-      });
-  };
+
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-stretch select-none font-sans">
@@ -507,53 +493,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
 
 
-          {/* Quick Demo Access Bar */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
-                Quick Demo Access
-              </span>
-              <span className="text-[11px] text-slate-400">Password: password123</span>
-            </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('ashwingupta2027@gmail.com')}
-                disabled={isSubmitting}
-                className="p-2 text-left rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition cursor-pointer text-xs group"
-              >
-                <div className="font-semibold text-slate-800 group-hover:text-blue-700 truncate">
-                  Ashwin Gupta
-                </div>
-                <div className="text-[10px] text-slate-500 truncate">Logistics Lead</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('operator@bluspark.com')}
-                disabled={isSubmitting}
-                className="p-2 text-left rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition cursor-pointer text-xs group"
-              >
-                <div className="font-semibold text-slate-800 group-hover:text-blue-700 truncate">
-                  Operator
-                </div>
-                <div className="text-[10px] text-slate-500 truncate">Full Ops</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('analyst@bluspark.com')}
-                disabled={isSubmitting}
-                className="p-2 text-left rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition cursor-pointer text-xs group"
-              >
-                <div className="font-semibold text-slate-800 group-hover:text-blue-700 truncate">
-                  Analyst
-                </div>
-                <div className="text-[10px] text-slate-500 truncate">Rates &amp; Audits</div>
-              </button>
-            </div>
-          </div>
 
           {/* Bottom Switcher */}
           <div className="mt-6 text-center text-xs text-slate-500">

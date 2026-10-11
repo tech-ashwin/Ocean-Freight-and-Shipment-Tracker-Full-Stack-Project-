@@ -84,4 +84,5 @@ export type ActiveNav =
   | 'rate_search'
   | 'shipment_tracker'
   | 'invoice_checker'
-  | 'email_processor';
+  | 'email_processor'
+  | 'presentation';

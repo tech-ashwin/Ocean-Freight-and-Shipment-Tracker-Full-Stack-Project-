@@ -44,6 +44,7 @@ import { RateSearchView } from './views/RateSearchView';
 import { ShipmentTrackerView } from './views/ShipmentTrackerView';
 import { InvoiceCheckerView } from './views/InvoiceCheckerView';
 import { EmailProcessorView } from './views/EmailProcessorView';
+import { PresentationPitchDeckView } from './views/PresentationPitchDeckView';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -297,6 +298,7 @@ export default function App() {
         <TopBar
           user={user}
           onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+          onOpenPitchDeck={() => setActiveNav('presentation')}
         />
 
         {/* Viewport Router */}
@@ -343,6 +345,12 @@ export default function App() {
               setIsEmailModalOpen(true);
             }}
             onProcessAllEmails={handleProcessAllEmails}
+          />
+        )}
+
+        {activeNav === 'presentation' && (
+          <PresentationPitchDeckView
+            onNavigate={setActiveNav}
           />
         )}
       </div>

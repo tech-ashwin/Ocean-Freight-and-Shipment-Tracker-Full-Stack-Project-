@@ -6,6 +6,7 @@ import { shipmentsRouter } from './routes/shipments.js';
 import { emailsRouter } from './routes/emails.js';
 import { statsRouter } from './routes/stats.js';
 import { databaseRouter } from './routes/database.js';
+import { presentationRouter } from './routes/presentation.js';
 import { db } from './db.js';
 
 export function createBackendApp() {
@@ -22,6 +23,7 @@ export function createBackendApp() {
   app.use('/api/emails', emailsRouter);
   app.use('/api/stats', statsRouter);
   app.use('/api/database', databaseRouter);
+  app.use('/api/presentation', presentationRouter);
 
   // Health check endpoint
   app.get('/api/health', async (_req, res) => {
